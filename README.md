@@ -31,7 +31,7 @@
 | 담당자 | 담당 영역 |
 |---|---|
 | 하은총 | 메인 방 및 3D |
-| 황지희 | 아이템 |
+| 황지희 | 핀보드 및 아이템 |
 | 이현재 | 소셜 및 로그인 |
 
 ※ 마이페이지 담당 및 세부 작업 분배는 추후 협의합니다.
@@ -72,32 +72,34 @@ flutter run
 
 ## 프로젝트 구조
 
+```text
 lib/
-├── app/              # 앱 설정 및 테마
+├── app/                 # 앱 설정 및 테마
 │   ├── app.dart
 │   └── theme/
 │       └── app_theme.dart
-├── core/             # 공통 기능
+├── core/                # 공통 기능
 │   ├── constants/
 │   ├── network/
 │   ├── utils/
 │   └── widgets/
-├── features/         # 기능별 코드
-│   ├── room/         # 메인 방 및 3D
-│   ├── item/         # 아이템
-│   ├── auth/         # 로그인 및 인증
-│   └── social/       # 소셜
-└── main.dart         # 앱 진입점
+├── features/            # 기능별 코드
+│   ├── room/            # 메인 방 및 3D
+│   ├── item/            # 아이템
+│   ├── auth/            # 로그인 및 인증
+│   └── social/          # 소셜
+└── main.dart            # 앱 진입점
 
-assets/               # 이미지, 아이콘, 3D 모델
+assets/                  # 이미지, 아이콘, 3D 모델
 ├── images/
 ├── icons/
 └── models/
 
-docs/                 # 개발 문서
+docs/                    # 개발 문서
 └── CODE_CONVENTION.md
 
-test/                 # 테스트 코드
+test/                    # 테스트 코드
+```
 
 ## 협업 안내
 
