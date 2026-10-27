@@ -5,17 +5,26 @@
 
 **Toggle me**는 사용자의 취향과 일상을 가상의 3D 공간에 기록하고 공유하는 라이프스타일 아카이빙 서비스입니다.
 
+주요 기능:
+- 3D 방 및 가구 표시
+- 가구 선택 및 표시/숨김
+- 가구별 이미지 및 아이템 아카이빙
+- 로그인 및 사용자 인증
+- 소셜 기능
+- 방과 아이템의 공개 범위 설정
+
 ## 기술 스택
 
-| 구분 | 기술 | 상태 |
-|---|---|---|
-| Framework | Flutter | 확정 |
-| Language | Dart | 확정 |
-| 상태 관리 | Riverpod | 제안 중 |
-| 화면 이동 | go_router | 제안 중 |
-| Version Control | Git / GitHub | 확정 |
+| 구분 | 기술 |
+| --- | --- |
+| 프레임워크 | Flutter |
+| 언어 | Dart |
+| 상태 관리 | Riverpod |
+| 화면 이동 | go_router |
+| 플랫폼 | Android, iOS |
+| 버전 관리 | Git, GitHub |
 
-※ 상태 관리 및 라우팅 방식은 프론트엔드 팀원 의견 수렴 후 확정합니다.
+※ Riverpod과 go_router는 팀에서 사용하기로 확정한 기술입니다. 실제 패키지 추가와 공통 설정은 별도 작업으로 진행합니다.
 
 ## 담당 기능
 
@@ -23,7 +32,7 @@
 |---|---|
 | 하은총 | 메인 방 및 3D |
 | 황지희 | 아이템 |
-| 현재 | 소셜 및 로그인 |
+| 이현재 | 소셜 및 로그인 |
 
 ※ 마이페이지 담당 및 세부 작업 분배는 추후 협의합니다.
 
@@ -63,21 +72,32 @@ flutter run
 
 ## 프로젝트 구조
 
-```text
 lib/
-├── app/             # 앱 설정 및 테마
-├── core/            # 공통 기능
-├── features/
-│   ├── room/        # 메인 방 및 3D
-│   ├── item/        # 아이템
-│   ├── auth/        # 로그인
-│   └── social/      # 소셜
-└── main.dart
+├── app/              # 앱 설정 및 테마
+│   ├── app.dart
+│   └── theme/
+│       └── app_theme.dart
+├── core/             # 공통 기능
+│   ├── constants/
+│   ├── network/
+│   ├── utils/
+│   └── widgets/
+├── features/         # 기능별 코드
+│   ├── room/         # 메인 방 및 3D
+│   ├── item/         # 아이템
+│   ├── auth/         # 로그인 및 인증
+│   └── social/       # 소셜
+└── main.dart         # 앱 진입점
 
 assets/               # 이미지, 아이콘, 3D 모델
+├── images/
+├── icons/
+└── models/
+
 docs/                 # 개발 문서
+└── CODE_CONVENTION.md
+
 test/                 # 테스트 코드
-```
 
 ## 협업 안내
 
