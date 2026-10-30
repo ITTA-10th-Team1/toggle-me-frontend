@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/dev_placeholder_screen.dart';
+import '../../features/auth/presentation/login_screen.dart';
 import 'app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -16,8 +17,7 @@ final GoRouter appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.login,
-      builder: (context, state) =>
-          const DevPlaceholderScreen(title: '로그인', description: '로그인 화면 준비 중'),
+      builder: (context, state) => const LoginScreen(),
     ),
 
     GoRoute(
