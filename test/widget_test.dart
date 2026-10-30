@@ -24,7 +24,7 @@ void main() {
     appRouter.go(AppRoutes.login);
     await tester.pumpAndSettle();
 
-    expect(find.text('로그인 화면 준비 중'), findsOneWidget);
+    expect(find.text('SNS 간편 로그인'), findsOneWidget);
   });
 
   testWidgets('비회원 안내 화면으로 이동할 수 있다', (tester) async {
