@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_routes.dart';
@@ -129,8 +130,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _idController,
                   hintText: '아이디 입력',
                   icon: Icons.person_outline,
-                  keyboardType: TextInputType.emailAddress,
+                  keyboardType: TextInputType.text,
                   textInputAction: TextInputAction.next,
+                  // 화면설계서 4번: 영문 소문자(a~z), 숫자(0~9)만 입력 가능
+                  // 대문자, 공백, 특수문자는 눌러도 입력되지 않아요.
+                  // TODO: 백엔드 아이디 형식(이메일?) 팀 확인 후 맞추기
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-z0-9]')),
+                  ],
                   validator: _validateId,
                 ),
                 const SizedBox(height: 12),
