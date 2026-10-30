@@ -1,3 +1,13 @@
+import java.util.Properties
+
+// 카카오 네이티브 앱 키는 git에 올라가지 않는 android/local.properties에서 읽어요.
+// (예시: android/local.properties.example)
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val kakaoNativeAppKey: String = localProperties.getProperty("kakao.nativeAppKey") ?: ""
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -27,6 +37,9 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // AndroidManifest.xml의 ${kakaoNativeAppKey} 자리에 키를 넣어줘요.
+        manifestPlaceholders["kakaoNativeAppKey"] = kakaoNativeAppKey
     }
 
     buildTypes {
