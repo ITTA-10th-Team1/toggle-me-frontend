@@ -2,6 +2,8 @@ class AppRoutes {
   AppRoutes._();
 
   static const onboarding = '/onboarding';
+  static const guestIntro = '/guest-intro';
+
   static const login = '/login';
   static const signup = '/signup';
 

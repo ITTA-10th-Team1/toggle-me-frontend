@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/dev_placeholder_screen.dart';
+import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/onboarding/presentation/guest_intro_screen.dart';
 import 'app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -10,8 +12,12 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(
       path: AppRoutes.onboarding,
-      builder: (context, state) =>
-          const DevPlaceholderScreen(title: '온보딩', description: '온보딩 화면 준비 중'),
+      builder: (context, state) => const OnboardingScreen(),
+    ),
+
+    GoRoute(
+      path: AppRoutes.guestIntro,
+      builder: (context, state) => const GuestIntroScreen(),
     ),
 
     GoRoute(
