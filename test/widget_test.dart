@@ -22,7 +22,7 @@ void main() {
     appRouter.go(AppRoutes.login);
     await tester.pumpAndSettle();
 
-    expect(find.text('로그인 화면 준비 중'), findsOneWidget);
+    expect(find.text('SNS 간편 로그인'), findsOneWidget);
   });
 
   testWidgets('존재하지 않는 경로에서 404 화면이 표시된다', (tester) async {
