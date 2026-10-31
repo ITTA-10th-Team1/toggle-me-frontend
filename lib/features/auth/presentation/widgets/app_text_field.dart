@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../auth_colors.dart';
 
@@ -14,6 +15,7 @@ class AppTextField extends StatefulWidget {
     this.validator,
     this.keyboardType,
     this.textInputAction,
+    this.inputFormatters,
   });
 
   final TextEditingController controller;
@@ -23,6 +25,9 @@ class AppTextField extends StatefulWidget {
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
+
+  /// 입력할 수 있는 글자를 제한할 때 사용해요. (예: 소문자·숫자만)
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -44,6 +49,10 @@ class _AppTextFieldState extends State<AppTextField> {
       validator: widget.validator,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
+      inputFormatters: widget.inputFormatters,
+      // 키보드 자동 수정·추천 단어가 글자를 멋대로 바꾸지 않게 꺼둬요.
+      autocorrect: false,
+      enableSuggestions: false,
       style: const TextStyle(fontSize: 14),
       decoration: InputDecoration(
         hintText: widget.hintText,

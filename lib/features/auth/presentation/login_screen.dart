@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_routes.dart';
 import '../data/auth_service.dart';
+import '../data/kakao_auth_client.dart';
+import '../data/models/auth_error_code.dart';
+import '../data/models/login_response.dart';
 import 'auth_colors.dart';
 import 'widgets/app_text_field.dart';
 import 'widgets/primary_button.dart';
@@ -57,26 +61,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await _authService.login(
+      final response = await _authService.login(
         id: _idController.text.trim(),
         password: _passwordController.text,
       );
-      if (!mounted) return;
-      // TODO(router): 프로필 설정/튜토리얼 경로 추가 후 상태별 분기
-      // 지금은 임시로 온보딩으로 보내요.
-      context.go(AppRoutes.onboarding);
+      _goNextScreen(response);
+    } on AuthException catch (e) {
+      _showMessage(e.message);
     } catch (e) {
-      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+      _showMessage('로그인 중 문제가 생겼어요.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _onSocialPressed(SocialType type) async {
+    if (_isLoading) return; // 요청 중 중복 클릭 방지
+
     try {
       switch (type) {
         case SocialType.kakao:
-          await _authService.loginWithKakao();
+          await _onKakaoPressed();
         case SocialType.naver:
           await _authService.loginWithNaver();
         case SocialType.google:
@@ -84,9 +89,36 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on UnimplementedError catch (e) {
       _showMessage(e.message ?? '준비 중이에요.');
+    } on KakaoAppKeyMissingException catch (e) {
+      _showMessage(e.toString());
+    } on AuthException catch (e) {
+      _showMessage(e.message);
     } catch (e) {
       _showMessage('로그인 중 문제가 생겼어요.');
     }
+  }
+
+  Future<void> _onKakaoPressed() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await _authService.loginWithKakao();
+      // 설계서 상태 5: 카카오 인증 취소 → 오류 메시지 없이 로그인 화면 유지
+      if (response == null) return;
+      _goNextScreen(response);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// 로그인 성공 후 다음 화면으로 이동
+  void _goNextScreen(LoginResponse response) {
+    if (!mounted) return;
+    // TODO(router): 프로필 설정/튜토리얼 경로 추가 후 onboardingStep별 분기
+    //   OnboardingStep.profile   → 최초 프로필 설정
+    //   OnboardingStep.furniture → 튜토리얼(가구 선택)
+    //   OnboardingStep.done      → 마이홈
+    // 지금은 경로가 없어서 임시로 온보딩으로 보내요.
+    context.go(AppRoutes.onboarding);
   }
 
   void _showMessage(String message) {
@@ -129,8 +161,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _idController,
                   hintText: '아이디 입력',
                   icon: Icons.person_outline,
-                  keyboardType: TextInputType.emailAddress,
+                  keyboardType: TextInputType.text,
                   textInputAction: TextInputAction.next,
+                  // 화면설계서 4번: 영문 소문자(a~z), 숫자(0~9)만 입력 가능
+                  // 대문자, 공백, 특수문자는 눌러도 입력되지 않아요.
+                  // TODO: 백엔드 아이디 형식(이메일?) 팀 확인 후 맞추기
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-z0-9]')),
+                  ],
                   validator: _validateId,
                 ),
                 const SizedBox(height: 12),
