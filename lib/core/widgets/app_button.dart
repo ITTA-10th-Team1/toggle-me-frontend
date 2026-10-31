@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_colors.dart';
+
 enum AppButtonVariant { login, guest }
 
 class AppButton extends StatelessWidget {
@@ -27,10 +29,10 @@ class AppButton extends StatelessWidget {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: isLogin
-              ? const Color(0xFF171717)
-              : const Color(0x99FFFFFF),
-          foregroundColor: const Color(0xFF171717),
-          disabledBackgroundColor: const Color(0xFFE0E0E0),
+              ? AppColors.loginButton
+              : AppColors.guestButton,
+          foregroundColor: isLogin ? AppColors.white : AppColors.textPrimary,
+          disabledBackgroundColor: AppColors.disabled,
           elevation: 0,
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -41,11 +43,7 @@ class AppButton extends StatelessWidget {
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isLogin ? Colors.white : const Color(0xFF171717),
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
     );
