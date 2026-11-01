@@ -4,7 +4,16 @@ abstract final class AppColors {
   static const Color primary = Color(0xFFFF9638);
 
   static const Color textPrimary = Color(0xFF171717);
+  static const Color textSecondary = Color(0xFF545454);
+  static const Color black = Color(0xFF000000);
   static const Color white = Color(0xFFFFFFFF);
+
+  static const Color background = Color(0xFFFFF9F0);
+  static const Color uploadBackground = Color(0xFFFFE8DC);
+  static const Color border = Color(0xFFD3D3D3);
+  static const Color buttonSecondary = Color(0xFFF5F5F5);
+  static const Color chipBackground = Color(0xFFF5F0E8);
+
   static const Color disabled = Color(0xFFE0E0E0);
 
   static const Color guestButton = Color(0x99FFFFFF);
@@ -12,4 +21,6 @@ abstract final class AppColors {
 
   static const Color toggleOn = Color(0xFFFF9638);
   static const Color toggleOff = Color(0xFF777777);
+
+  static const Color darkIvory = Color(0xFFF8F0E5);
 }
