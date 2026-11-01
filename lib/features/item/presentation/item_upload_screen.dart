@@ -42,6 +42,8 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
   List<String> _recommendedTags = [];
   Set<String> _selectedTags = {};
 
+  bool _isSubmitting = false;
+
   @override
   void dispose() {
     _memoController.dispose();
@@ -506,6 +508,7 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
         TextField(
           controller: _memoController,
           maxLines: 1,
+          maxLength: 200,
           style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: '오늘 발견한 취향에 대해 자유롭게 적어보세요',
@@ -513,6 +516,11 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
               fontSize: 14,
               color: AppColors.textSecondary,
               letterSpacing: -0.35,
+            ),
+            counterText: '${_memoController.text.length}/200',
+            counterStyle: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
             ),
             filled: true,
             fillColor: AppColors.white,
@@ -532,6 +540,9 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
               borderSide: const BorderSide(color: AppColors.primary, width: 1),
             ),
           ),
+          onChanged: (_) {
+            setState(() {});
+          },
         ),
       ],
     );
@@ -608,6 +619,30 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
     );
   }
 
+  Future<void> _handleSubmit() async {
+    if (_isSubmitting) return;
+
+    if (_selectedImage == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('사진을 먼저 등록해 주세요.')));
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // 추후 아이템 기록 API 연결
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
   // 하단 취소 및 기록 버튼
   Widget _buildBottomButtons() {
     return Row(
@@ -617,9 +652,7 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
           child: SizedBox(
             height: 50,
             child: OutlinedButton(
-              onPressed: () {
-                context.go(AppRoutes.items);
-              },
+              onPressed: _showExitDialog,
               style: OutlinedButton.styleFrom(
                 backgroundColor: AppColors.buttonSecondary,
                 foregroundColor: AppColors.textSecondary,
@@ -639,19 +672,29 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
           child: SizedBox(
             height: 50,
             child: ElevatedButton(
-              onPressed: () {
-                // 추후 아이템 기록 API 연결
-              },
+              onPressed: _isSubmitting ? null : _handleSubmit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.black,
                 elevation: 0,
                 shape: const StadiumBorder(),
               ),
-              child: const Text(
-                '기록하기',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.black,
+                      ),
+                    )
+                  : const Text(
+                      '기록하기',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
         ),
