@@ -31,11 +31,16 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
 
   // 카테고리 목록
   final List<Map<String, String?>> _categories = [
-    {'name': '거울', 'image': 'assets/images/img_upload_mirror.png'},
-    {'name': '냉장고', 'image': 'assets/images/img_upload_refrigerator.png'},
-    {'name': '책상', 'image': null},
     {'name': '화장대', 'image': null},
+    {'name': '거울', 'image': 'assets/images/img_upload_mirror.png'},
+    {'name': '책상', 'image': null},
+    {'name': 'TV', 'image': null},
+    {'name': '냉장고', 'image': 'assets/images/img_upload_refrigerator.png'},
   ];
+
+  bool _isGeneratingTags = false;
+  List<String> _recommendedTags = [];
+  Set<String> _selectedTags = {};
 
   @override
   void dispose() {
@@ -90,6 +95,68 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
     );
   }
 
+  // 작성 종료 확인 팝업
+  Future<void> _showExitDialog() async {
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            '기록을 그만할까요?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: const Text(
+            '작성 중인 내용은 저장되지 않아요.',
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text(
+                '계속 작성',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.black,
+                elevation: 0,
+              ),
+              child: const Text(
+                '나가기',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+
+    if (shouldExit == true) {
+      context.go(AppRoutes.items);
+    }
+  }
+
   // 상단 제목 및 닫기 버튼
   Widget _buildHeader() {
     return SizedBox(
@@ -108,9 +175,7 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
             ),
           ),
           GestureDetector(
-            onTap: () {
-              context.go(AppRoutes.items);
-            },
+            onTap: _showExitDialog,
             child: Container(
               width: 46,
               height: 46,
@@ -139,7 +204,7 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
             .toDouble();
 
         return GestureDetector(
-          onTap: _showImageSourceSheet,
+          onTap: _selectedImage == null ? _showImageSourceSheet : null,
           child: CustomPaint(
             foregroundPainter: _DashedBorderPainter(
               color: _uploadAccent,
@@ -153,11 +218,30 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
                 color: AppColors.uploadBackground,
                 child: _selectedImage == null
                     ? _buildUploadPlaceholder()
-                    : Image.file(
-                        _selectedImage!,
-                        width: double.infinity,
-                        height: imageHeight,
-                        fit: BoxFit.cover,
+                    : Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.file(_selectedImage!, fit: BoxFit.cover),
+
+                          // 사진 변경 및 삭제 버튼
+                          Positioned(
+                            top: 10,
+                            right: 10,
+                            child: Row(
+                              children: [
+                                _buildImageActionButton(
+                                  icon: Icons.edit,
+                                  onPressed: _showImageSourceSheet,
+                                ),
+                                const SizedBox(width: 8),
+                                _buildImageActionButton(
+                                  icon: Icons.delete_outline,
+                                  onPressed: _removeSelectedImage,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
               ),
             ),
@@ -165,6 +249,31 @@ class _ItemUploadScreenState extends State<ItemUploadScreen> {
         );
       },
     );
+  }
+
+  // 사진 변경 및 삭제 버튼 UI
+  Widget _buildImageActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Material(
+      color: AppColors.white,
+      shape: const CircleBorder(),
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(icon, color: AppColors.textPrimary),
+        iconSize: 20,
+        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+        padding: EdgeInsets.zero,
+      ),
+    );
+  }
+
+  // 선택한 사진 삭제
+  void _removeSelectedImage() {
+    setState(() {
+      _selectedImage = null;
+    });
   }
 
   // 사진이 선택되지 않았을 때 표시하는 UI
