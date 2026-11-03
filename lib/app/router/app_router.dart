@@ -1,3 +1,5 @@
+import '../../core/widgets/app_notice.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -5,10 +7,15 @@ import '../../core/widgets/dev_placeholder_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/onboarding/presentation/guest_intro_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/room/presentation/room_screen.dart';
+import '../../features/room/presentation/room_presentation_config.dart';
 import 'app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.onboarding,
+  // Keep normal startup; presentation may opt in with ROOM_DEMO_ENTRY.
+  initialLocation: const bool.fromEnvironment('ROOM_DEMO_ENTRY')
+      ? AppRoutes.room
+      : AppRoutes.onboarding,
 
   routes: [
     GoRoute(
@@ -34,11 +41,27 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
 
+    // 실제 메인 3D 방 화면
     GoRoute(
       path: AppRoutes.room,
-      builder: (context, state) => const DevPlaceholderScreen(
-        title: '3D 방',
-        description: '메인 3D 방 화면 준비 중',
+      builder: (context, state) => RoomScreen(
+        moodHashtags: RoomPresentationConfig.moodHashtags,
+        onFurnitureTap: (category) => context.push(
+          Uri(
+            path: AppRoutes.pinboard,
+            queryParameters: {'category': category},
+          ).toString(),
+        ),
+        onProfile: () => context.push(AppRoutes.mypage),
+        onNotifications: () => context.push(AppRoutes.notifications),
+        onRecord: () => context.push(AppRoutes.itemCreate),
+        onGuestbook: () => context.push(AppRoutes.guestbook),
+        onShop: () => context.push(AppRoutes.shop),
+        onMood: () => context.push(AppRoutes.calendar),
+        onFriends: () => context.push(AppRoutes.social),
+        onCategory: (category) {
+          showAppNotice(context, '$category 기능은 준비 중입니다.');
+        },
       ),
     ),
 

@@ -38,6 +38,10 @@ dependencies:
   flutter_riverpod: ^3.4.3
   kakao_flutter_sdk_user: ^2.1.0
 
+  flutter_svg: ^2.3.2
+
+  model_viewer_plus: ^1.10.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -61,6 +65,9 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/room/raster/
+    - assets/room/icons/
+    - assets/models/
     - assets/images/
 
   # To add assets to your application, add an assets section, like this:

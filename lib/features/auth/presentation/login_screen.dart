@@ -1,3 +1,5 @@
+import '../../../core/widgets/app_notice.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,7 @@ import '../data/auth_service.dart';
 import '../data/kakao_auth_client.dart';
 import '../data/models/auth_error_code.dart';
 import '../data/models/login_response.dart';
+import '../data/models/onboarding_step.dart';
 import '../../../app/theme/app_colors.dart';
 import 'widgets/app_text_field.dart';
 import 'widgets/primary_button.dart';
@@ -113,19 +116,22 @@ class _LoginScreenState extends State<LoginScreen> {
   /// 로그인 성공 후 다음 화면으로 이동
   void _goNextScreen(LoginResponse response) {
     if (!mounted) return;
+    // Completed accounts can enter the main room without replacing the
+    // login team's authentication or onboarding state model.
+    if (response.onboardingStep == OnboardingStep.done) {
+      context.go(AppRoutes.room);
+      return;
+    }
     // TODO(router): 프로필 설정/튜토리얼 경로 추가 후 onboardingStep별 분기
     //   OnboardingStep.profile   → 최초 프로필 설정
     //   OnboardingStep.furniture → 튜토리얼(가구 선택)
-    //   OnboardingStep.done      → 마이홈
-    // 지금은 경로가 없어서 임시로 온보딩으로 보내요.
+    // PROFILE/FURNITURE destinations still await their owning screens.
     context.go(AppRoutes.onboarding);
   }
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showAppNotice(context, message);
   }
 
   // ───────── 입력 검사 ─────────
