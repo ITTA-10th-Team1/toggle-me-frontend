@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 서버(API)와 통신하려면 필요해요. 릴리스 빌드에도 적용되도록 main에 둬요. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="toggle_me"
         android:name="${applicationName}"
