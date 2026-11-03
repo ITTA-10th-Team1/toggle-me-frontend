@@ -220,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         // 피그마 기준 250x50. 이미지 비율이 달라도 찌그러지지 않게 contain 사용.
         Image.asset(
-          'assets/images/logo.png',
+          'assets/images/img_login_logo.png',
           width: 250,
           height: 50,
           fit: BoxFit.contain,

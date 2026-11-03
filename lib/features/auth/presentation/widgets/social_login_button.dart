@@ -25,7 +25,7 @@ class SocialLoginButton extends StatelessWidget {
         onTap: onPressed,
         customBorder: const CircleBorder(),
         child: Image.asset(
-          'assets/images/kakao_button.png',
+          'assets/images/img_login_kakao.png',
           width: 52,
           height: 52,
           semanticLabel: '카카오 로그인',
