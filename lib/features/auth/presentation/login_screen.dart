@@ -7,7 +7,7 @@ import '../data/auth_service.dart';
 import '../data/kakao_auth_client.dart';
 import '../data/models/auth_error_code.dart';
 import '../data/models/login_response.dart';
-import 'auth_colors.dart';
+import '../../../app/theme/app_colors.dart';
 import 'widgets/app_text_field.dart';
 import 'widgets/primary_button.dart';
 import 'widgets/social_login_button.dart';
@@ -208,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: IconButton(
         padding: EdgeInsets.zero,
         alignment: Alignment.centerLeft,
-        icon: const Icon(Icons.arrow_back, color: AuthColors.subText),
+        icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
         onPressed: () => context.go(AppRoutes.onboarding),
       ),
     );
@@ -233,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
           style: TextStyle(
             fontSize: 13,
             height: 1.5,
-            color: AuthColors.subText,
+            color: AppColors.textSecondary,
           ),
         ),
       ],
@@ -257,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AuthColors.black,
+              color: AppColors.textPrimary,
             ),
           ),
         ),
@@ -271,7 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const Center(
           child: Text(
             'SNS 간편 로그인',
-            style: TextStyle(fontSize: 12, color: AuthColors.hint),
+            style: TextStyle(fontSize: 12, color: AppColors.textHint),
           ),
         ),
         const SizedBox(height: 16),
@@ -297,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           const Text(
             '계정이 없으신가요?',
-            style: TextStyle(fontSize: 12, color: AuthColors.hint),
+            style: TextStyle(fontSize: 12, color: AppColors.textHint),
           ),
           TextButton(
             onPressed: () => context.go(AppRoutes.signup),
@@ -311,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AuthColors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ),

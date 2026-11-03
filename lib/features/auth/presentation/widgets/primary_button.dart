@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../auth_colors.dart';
+import '../../../../app/theme/app_colors.dart';
 
 /// 검은색 꽉 찬 버튼 (로그인 버튼).
 /// isLoading 이 true 면 글씨 대신 로딩 표시가 나오고 버튼이 눌리지 않아요.
@@ -24,9 +24,9 @@ class PrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AuthColors.black,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0x991A1A1A), // 반투명 검정
+          backgroundColor: AppColors.loginButton,
+          foregroundColor: AppColors.white,
+          disabledBackgroundColor: AppColors.disabled,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(26),
