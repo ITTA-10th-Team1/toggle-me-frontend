@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# 카카오 네이티브 앱 키 등 비밀값 (예시: dart_defines.example.json)
+dart_defines.json
