@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../auth_colors.dart';
+import '../../../../app/theme/app_colors.dart';
 
 /// 카카오 / 네이버 / 구글 동그라미 버튼.
 /// 카카오는 이미지 버튼, 네이버·구글은 이미지가 없어서 임시로 글자를 넣었어요.
@@ -25,7 +25,7 @@ class SocialLoginButton extends StatelessWidget {
         onTap: onPressed,
         customBorder: const CircleBorder(),
         child: Image.asset(
-          'assets/images/kakao_button.png',
+          'assets/images/img_login_kakao.png',
           width: 52,
           height: 52,
           semanticLabel: '카카오 로그인',
@@ -43,7 +43,7 @@ class SocialLoginButton extends StatelessWidget {
           shape: BoxShape.circle,
           color: _backgroundColor,
           border: type == SocialType.google
-              ? Border.all(color: AuthColors.border)
+              ? Border.all(color: AppColors.border)
               : null,
         ),
         alignment: Alignment.center,
@@ -55,9 +55,9 @@ class SocialLoginButton extends StatelessWidget {
   Color get _backgroundColor {
     switch (type) {
       case SocialType.kakao:
-        return AuthColors.kakao;
+        return AppColors.kakao;
       case SocialType.naver:
-        return AuthColors.naver;
+        return AppColors.naver;
       case SocialType.google:
         return Colors.white;
     }

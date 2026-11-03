@@ -23,4 +23,9 @@ abstract final class AppColors {
   static const Color toggleOff = Color(0xFF777777);
 
   static const Color darkIvory = Color(0xFFF8F0E5);
+  static const Color textHint = Color(0xFF9E9E9E);
+  static const Color inputBackground = Color(0xFFF5F5F5);
+
+  static const Color kakao = Color(0xFFFEE500);
+  static const Color naver = Color(0xFF03C75A);
 }
