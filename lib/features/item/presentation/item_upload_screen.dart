@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:toggle_me/app/theme/app_colors.dart';
+
 import '../data/item_image_picker.dart';
 import 'providers/item_upload_provider.dart';
 
@@ -16,13 +18,22 @@ class ItemUploadScreen extends ConsumerStatefulWidget {
 }
 
 class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
-  static const Color _accentColor = Color(0xFFFF813B);
-  static const Color _backgroundColor = Color(0xFFFDFBF3);
-
   final ItemImagePicker _imagePicker = ItemImagePicker();
   final TextEditingController _memoController = TextEditingController();
 
   bool _isPublic = false;
+  int _selectedCategory = 3;
+
+  final List<_CategoryItem> _categories = const [
+    _CategoryItem('화장대'),
+    _CategoryItem('거울', imagePath: 'assets/images/img_upload_mirror.png'),
+    _CategoryItem('TV'),
+    _CategoryItem(
+      '냉장고',
+      imagePath: 'assets/images/img_upload_refrigerator.png',
+    ),
+    _CategoryItem('책상'),
+  ];
 
   @override
   void dispose() {
@@ -30,7 +41,6 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     super.dispose();
   }
 
-  // 갤러리 또는 카메라 선택
   Future<void> _showImagePicker() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -62,7 +72,6 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     );
   }
 
-  // 사진 선택 후 업로드 및 AI 분석 시작
   Future<void> _pickImage(ImageSource source) async {
     final File? image;
 
@@ -85,19 +94,29 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     }
   }
 
-  // 사진 삭제
   void _removeImage() {
     ref.read(itemUploadProvider.notifier).removeImage();
   }
 
-  // 취소 확인
   Future<void> _showCancelDialog() async {
+    final uploadState = ref.read(itemUploadProvider);
+
+    final hasContent =
+        uploadState.selectedImage != null ||
+        _memoController.text.trim().isNotEmpty;
+
+    if (!hasContent) {
+      ref.read(itemUploadProvider.notifier).removeImage();
+      if (mounted) context.pop();
+      return;
+    }
+
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('기록을 취소할까요?'),
-          content: const Text('작성 중인 내용이 사라집니다.'),
+          title: const Text('기록을 그만할까요?'),
+          content: const Text('작성 중인 내용은 저장되지 않아요.'),
           actions: [
             TextButton(
               onPressed: () {
@@ -109,7 +128,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
               onPressed: () {
                 Navigator.pop(dialogContext, true);
               },
-              child: const Text('취소하기'),
+              child: const Text('나가기'),
             ),
           ],
         );
@@ -122,7 +141,6 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     }
   }
 
-  // 냉장고 사진 기록
   Future<void> _handleSubmit() async {
     final uploadState = ref.read(itemUploadProvider);
 
@@ -166,145 +184,146 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     final uploadState = ref.watch(itemUploadProvider);
 
     return Scaffold(
-      backgroundColor: _backgroundColor,
-      appBar: AppBar(
-        backgroundColor: _backgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: _showCancelDialog,
-          icon: const Icon(Icons.close, color: Colors.black),
-        ),
-        title: const Text(
-          '아이템 기록하기',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle('사진'),
-              const SizedBox(height: 12),
-              _buildImageArea(uploadState),
-              const SizedBox(height: 28),
-
-              _buildSectionTitle('가구 선택'),
-              const SizedBox(height: 12),
-              _buildCategoryArea(),
-              const SizedBox(height: 28),
-
-              _buildSectionTitle('AI 추천 태그'),
-              const SizedBox(height: 12),
-              _buildTagArea(uploadState),
-              const SizedBox(height: 28),
-
-              _buildSectionTitle('메모'),
-              const SizedBox(height: 12),
-              _buildMemoArea(),
-              const SizedBox(height: 20),
-
-              _buildVisibilityArea(),
-              const SizedBox(height: 32),
-
-              _buildSubmitButton(uploadState),
-            ],
-          ),
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildImageArea(uploadState),
+                    const SizedBox(height: 22),
+                    _buildTagSection(uploadState),
+                    const SizedBox(height: 22),
+                    _buildCategorySection(),
+                    const SizedBox(height: 22),
+                    _buildMemoSection(),
+                    const SizedBox(height: 28),
+                    _buildVisibilitySection(),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+            ),
+            _buildBottomButtons(uploadState),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              '어떤 취향을 기록할까요?',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Material(
+            color: AppColors.buttonSecondary,
+            shape: const CircleBorder(),
+            child: IconButton(
+              onPressed: _showCancelDialog,
+              icon: const Icon(Icons.close, size: 21, color: AppColors.black),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildImageArea(ItemUploadState uploadState) {
-    final image = uploadState.selectedImage;
+  Widget _buildImageArea(ItemUploadState state) {
+    final image = state.selectedImage;
 
     return GestureDetector(
       onTap: image == null ? _showImagePicker : null,
       child: Container(
         width: double.infinity,
-        height: 260,
+        height: 185,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade300),
+          color: AppColors.uploadBackground,
+          borderRadius: BorderRadius.circular(14),
         ),
-        child: image == null
-            ? _buildEmptyImage()
-            : _buildSelectedImage(image, uploadState),
+        child: CustomPaint(
+          painter: const _DashedBorderPainter(
+            color: AppColors.primary,
+            radius: 14,
+          ),
+          child: image == null
+              ? _buildEmptyImage()
+              : _buildSelectedImage(image, state),
+        ),
       ),
     );
   }
 
   Widget _buildEmptyImage() {
-    return Column(
+    return const Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          Icons.add_photo_alternate_outlined,
-          size: 48,
-          color: Colors.grey.shade500,
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: AppColors.primary,
+          child: Icon(Icons.add, color: AppColors.black, size: 25),
         ),
-        const SizedBox(height: 12),
-        const Text('사진을 추가해 주세요', style: TextStyle(fontSize: 15)),
-        const SizedBox(height: 6),
+        SizedBox(height: 10),
         Text(
-          '갤러리 또는 카메라에서 선택할 수 있어요.',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          '사진을 올려주세요',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildSelectedImage(File image, ItemUploadState uploadState) {
+  Widget _buildSelectedImage(File image, ItemUploadState state) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(15),
+      borderRadius: BorderRadius.circular(14),
       child: Stack(
         fit: StackFit.expand,
         children: [
           Image.file(image, fit: BoxFit.cover),
-
-          if (uploadState.isUploading)
+          if (state.isUploading)
             Container(
               color: Colors.black45,
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 12),
-                    Text('사진 업로드 중...', style: TextStyle(color: Colors.white)),
+                    CircularProgressIndicator(color: AppColors.white),
+                    SizedBox(height: 10),
+                    Text(
+                      '사진 업로드 중...',
+                      style: TextStyle(color: AppColors.white),
+                    ),
                   ],
                 ),
               ),
             ),
-
           Positioned(
-            top: 10,
-            right: 10,
+            top: 8,
+            right: 8,
             child: Row(
               children: [
-                _imageActionButton(
-                  icon: Icons.refresh,
-                  onPressed: _showImagePicker,
-                ),
-                const SizedBox(width: 8),
-                _imageActionButton(
-                  icon: Icons.delete_outline,
-                  onPressed: _removeImage,
-                ),
+                _imageActionButton(Icons.refresh, _showImagePicker),
+                const SizedBox(width: 6),
+                _imageActionButton(Icons.delete_outline, _removeImage),
               ],
             ),
           ),
@@ -313,206 +332,345 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     );
   }
 
-  Widget _imageActionButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
+  Widget _imageActionButton(IconData icon, VoidCallback onPressed) {
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       shape: const CircleBorder(),
       child: IconButton(
         onPressed: onPressed,
-        icon: Icon(icon, color: Colors.black87),
+        icon: Icon(icon, color: AppColors.black, size: 20),
+        visualDensity: VisualDensity.compact,
       ),
     );
   }
 
-  Widget _buildCategoryArea() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _accentColor, width: 1.5),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.kitchen_outlined, size: 30, color: _accentColor),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '냉장고',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+  Widget _buildTagSection(ItemUploadState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('AI가 추천하는 태그'),
+        const SizedBox(height: 10),
+        if (state.selectedImage == null)
+          _tagMessage('사진을 선택하면 AI가 태그를 추천해요.')
+        else if (state.isUploading)
+          _tagMessage('사진 업로드가 완료되면 분석을 시작해요.')
+        else if (state.isGeneratingTags)
+          const Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
                 ),
-                SizedBox(height: 4),
-                Text(
-                  '냉장고에 보관한 아이템을 기록해요.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.check_circle, color: _accentColor),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTagArea(ItemUploadState uploadState) {
-    if (uploadState.selectedImage == null) {
-      return _tagMessage('사진을 선택하면 AI가 태그를 추천해요.');
-    }
-
-    if (uploadState.isUploading) {
-      return _tagMessage('사진 업로드가 완료되면 분석을 시작해요.');
-    }
-
-    if (uploadState.isGeneratingTags) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: _accentColor,
               ),
-            ),
-            SizedBox(width: 10),
-            Text('AI가 사진을 분석하고 있어요.'),
-          ],
-        ),
-      );
-    }
+              SizedBox(width: 8),
+              Text('AI가 사진을 분석하고 있어요.'),
+            ],
+          )
+        else if (state.recommendedTags.isEmpty)
+          _tagMessage('추천 태그가 없어요. 사진은 그대로 기록할 수 있어요.')
+        else
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: state.recommendedTags.map((tag) {
+              final selected = state.selectedTags.contains(tag);
 
-    if (uploadState.recommendedTags.isEmpty) {
-      return _tagMessage('추천 태그가 없어요. 사진은 그대로 기록할 수 있어요.');
-    }
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: uploadState.recommendedTags.map((tag) {
-        final isSelected = uploadState.selectedTags.contains(tag);
-
-        return FilterChip(
-          label: Text(tag),
-          selected: isSelected,
-          selectedColor: const Color(0xFFFFE4D4),
-          checkmarkColor: _accentColor,
-          onSelected: (_) {
-            ref.read(itemUploadProvider.notifier).toggleTag(tag);
-          },
-        );
-      }).toList(),
+              return FilterChip(
+                label: Text('#$tag'),
+                selected: selected,
+                showCheckmark: false,
+                selectedColor: AppColors.uploadBackground,
+                backgroundColor: AppColors.chipBackground,
+                side: BorderSide.none,
+                labelStyle: TextStyle(
+                  fontSize: 12,
+                  color: selected ? AppColors.primary : AppColors.textSecondary,
+                ),
+                onSelected: (_) {
+                  ref.read(itemUploadProvider.notifier).toggleTag(tag);
+                },
+              );
+            }).toList(),
+          ),
+      ],
     );
   }
 
   Widget _tagMessage(String message) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        message,
-        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-      ),
+    return Text(
+      message,
+      style: const TextStyle(fontSize: 12, color: AppColors.textHint),
     );
   }
 
-  Widget _buildMemoArea() {
-    return TextField(
-      controller: _memoController,
-      maxLength: 200,
-      maxLines: 4,
-      decoration: InputDecoration(
-        hintText: '아이템에 대한 메모를 남겨보세요.',
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        counterText: '${_memoController.text.length}/200',
-      ),
-      onChanged: (_) {
-        setState(() {});
-      },
-    );
-  }
-
-  Widget _buildVisibilityArea() {
-    return Row(
+  Widget _buildCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('공개 설정', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
-              Text(
-                '기록 공개 여부를 설정해요.',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
+        _sectionTitle('카테고리'),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 88,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final category = _categories[index];
+              final selected = _selectedCategory == index;
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedCategory = index;
+                  });
+                },
+                child: Container(
+                  width: 76,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.uploadBackground
+                        : AppColors.white,
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(
+                      color: selected ? AppColors.primary : AppColors.border,
+                      width: selected ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildCategoryIcon(category),
+                      const SizedBox(height: 5),
+                      Text(
+                        category.name,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
-        ),
-        Switch(
-          value: _isPublic,
-          activeThumbColor: _accentColor,
-          onChanged: (value) {
-            setState(() {
-              _isPublic = value;
-            });
-          },
         ),
       ],
     );
   }
 
-  Widget _buildSubmitButton(ItemUploadState uploadState) {
-    final isDisabled =
-        uploadState.isSubmitting ||
-        uploadState.isUploading ||
-        uploadState.selectedImage == null;
+  Widget _buildCategoryIcon(_CategoryItem category) {
+    if (category.imagePath == null) {
+      return const SizedBox(width: 42, height: 42);
+    }
 
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: isDisabled ? null : _handleSubmit,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _accentColor,
-          disabledBackgroundColor: Colors.grey.shade300,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+    return Image.asset(
+      category.imagePath!,
+      width: 42,
+      height: 42,
+      fit: BoxFit.contain,
+    );
+  }
+
+  Widget _buildMemoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('메모'),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _memoController,
+          maxLines: 1,
+          decoration: InputDecoration(
+            hintText: '오늘 발견한 취향에 대해 자유롭게 적어보세요',
+            hintStyle: const TextStyle(fontSize: 11, color: AppColors.textHint),
+            filled: true,
+            fillColor: AppColors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 17,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
           ),
-          elevation: 0,
         ),
-        child: uploadState.isSubmitting
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+      ],
+    );
+  }
+
+  Widget _buildVisibilitySection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '취향 공개 여부',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-              )
-            : const Text(
-                '기록하기',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+                SizedBox(height: 4),
+                Text(
+                  'On: 친구에게 공개   Off: 나만 보기',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _isPublic,
+            activeThumbColor: AppColors.white,
+            activeTrackColor: AppColors.primary,
+            inactiveThumbColor: AppColors.white,
+            inactiveTrackColor: AppColors.toggleOff,
+            onChanged: (value) {
+              setState(() {
+                _isPublic = value;
+              });
+            },
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildBottomButtons(ItemUploadState state) {
+    return Container(
+      color: AppColors.background,
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 48,
+              child: OutlinedButton(
+                onPressed: _showCancelDialog,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: AppColors.buttonSecondary,
+                  foregroundColor: AppColors.textSecondary,
+                  side: const BorderSide(color: AppColors.border),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: const Text('취소하기', style: TextStyle(fontSize: 13)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 2,
+            child: SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: state.isSubmitting ? null : _handleSubmit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: AppColors.disabled,
+                  foregroundColor: AppColors.black,
+                  disabledForegroundColor: AppColors.textSecondary,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: state.isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.black,
+                        ),
+                      )
+                    : const Text(
+                        '기록하기',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.black,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: AppColors.textPrimary,
+      ),
+    );
+  }
+}
+
+class _CategoryItem {
+  const _CategoryItem(this.name, {this.imagePath});
+
+  final String name;
+  final String? imagePath;
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  const _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3;
+
+    final rect = Offset.zero & size;
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(rect.deflate(1), Radius.circular(radius)),
+      );
+
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+
+      while (distance < metric.length) {
+        final end = (distance + 6).clamp(0.0, metric.length);
+
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+
+        distance += 10;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.radius != radius;
   }
 }

@@ -6,9 +6,7 @@ import '../../data/item_repository.dart';
 import '../../../../core/network/api_client.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
-  final client = ApiClient(
-    accessToken: 'eyJraWQiOiJRSXRoRlpLcGJtWWFXcllWS0Z3NlR5QnNPaGVYVTdpbGFtcVI4dXJJLUJJIiwiYWxnIjoiSFMyNTYifQ.eyJleHAiOjE3OTM2NzcwNTQsInN1YiI6IjEiLCJpYXQiOjE3OTM2NzUyNTR9.qzSlm8vfrhg6VrPYVM9E_XyXQw9kIOlRB0LpJ5ARfpM',
-  );
+  final client = ApiClient();
 
   ref.onDispose(() => client.dio.close());
 
