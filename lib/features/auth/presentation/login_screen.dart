@@ -56,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // ───────── 동작 ─────────
 
   Future<void> _onLoginPressed() async {
+    if (_isLoading) return; // 요청 중 중복 클릭 방지
     FocusScope.of(context).unfocus(); // 키보드 내리기
     if (!_formKey.currentState!.validate()) return;
 
@@ -67,6 +68,10 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       _goNextScreen(response);
     } on AuthException catch (e) {
+      // 설계서 상태 3: 로그인 실패 → 아이디는 유지, 비밀번호만 초기화
+      if (e.code == AuthErrorCode.credentialsInvalid) {
+        _passwordController.clear();
+      }
       _showMessage(e.message);
     } catch (e) {
       _showMessage('로그인 중 문제가 생겼어요.');
