@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_routes.dart';
+import '../../../app/theme/app_colors.dart';
 
 class GuestIntroScreen extends StatelessWidget {
   const GuestIntroScreen({super.key});
@@ -9,7 +10,7 @@ class GuestIntroScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF9EF),
+      backgroundColor: AppColors.guestBackground,
       appBar: AppBar(
         title: const Text('비회원 이용 안내'),
         backgroundColor: Colors.transparent,
@@ -24,7 +25,7 @@ class GuestIntroScreen extends StatelessWidget {
               const Icon(
                 Icons.info_outline_rounded,
                 size: 64,
-                color: Color(0xFFFF883F),
+                color: AppColors.guestAccent,
               ),
               const SizedBox(height: 24),
               const Text(

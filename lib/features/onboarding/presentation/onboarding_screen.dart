@@ -4,22 +4,38 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_routes.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_gradients.dart';
+import '../data/room_onboarding_draft.dart';
+import '../../room/domain/room_visibility.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/room_mode_toggle.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  const OnboardingScreen({super.key, this.roomDraft});
+
+  final RoomOnboardingDraft? roomDraft;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  bool _isOn = true;
+  late bool _isOn;
+  RoomOnboardingDraft get _draft => widget.roomDraft ?? roomOnboardingDraft;
+
+  @override
+  void initState() {
+    super.initState();
+    _isOn = _draft.visibility.isPublic;
+  }
 
   void _changeRoomMode(bool value) {
     setState(() {
       _isOn = value;
+      _draft.visibility = value
+          ? RoomVisibility.socialOn
+          : RoomVisibility.socialOff;
     });
   }
 
@@ -35,19 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFFDF0),
-              Color(0xFFFFF4B3),
-              Color(0xFFFFD58E),
-              Color(0xFFFFA06E),
-            ],
-            stops: [0.0, 0.32, 0.68, 1.0],
-          ),
-        ),
+        decoration: const BoxDecoration(gradient: AppGradients.onboarding),
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -137,7 +141,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xCC171717),
+                        color: AppColors.roomOffOverlay,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -165,7 +169,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         Text(
           '취향을 모으는 가장 나다운 방법',
           style: TextStyle(
-            color: Color(0xFF171717),
+            color: AppColors.textPrimary,
             fontSize: 23,
             fontWeight: FontWeight.w800,
             letterSpacing: -1.0,
@@ -178,7 +182,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           '점점 잊혀가는 나의 취향을\n'
           '나만의 방에 하나씩 기록해두세요',
           style: TextStyle(
-            color: Color(0xFF292929),
+            color: AppColors.onboardingTextSecondary,
             fontSize: 15,
             fontWeight: FontWeight.w500,
             height: 1.45,
