@@ -20,4 +20,14 @@ abstract final class AppColors {
 
   static const Color kakao = Color(0xFFFEE500);
   static const Color naver = Color(0xFF03C75A);
+
+  // 화면 배경 그라데이션 (친구 목록 등)
+  static const Color backgroundGradientTop = Color(0xFFFFFBF6);
+  static const Color backgroundGradientBottom = Color(0xFFFCE8DA);
+
+  // 동그란 아이콘 버튼 배경 (뒤로가기 등)
+  static const Color iconButtonBackground = Color(0xFFF3EEE6);
+
+  // 연한 주황 버튼 배경 (놀러가기 등)
+  static const Color primaryLight = Color(0xFFFCDCC6);
 }

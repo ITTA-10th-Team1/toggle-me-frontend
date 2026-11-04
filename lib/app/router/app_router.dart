@@ -5,6 +5,7 @@ import '../../core/widgets/dev_placeholder_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/onboarding/presentation/guest_intro_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/social/presentation/friend_list_screen.dart';
 import 'app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -88,8 +89,7 @@ final GoRouter appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.social,
-      builder: (context, state) =>
-          const DevPlaceholderScreen(title: '소셜', description: '소셜 화면 준비 중'),
+      builder: (context, state) => const FriendListScreen(),
     ),
 
     GoRoute(
