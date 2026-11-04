@@ -8,8 +8,15 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        primary: AppColors.primary,
+        onPrimary: AppColors.textPrimary,
+        surface: AppColors.white,
+        onSurface: AppColors.textPrimary,
+      ),
       scaffoldBackgroundColor: AppColors.white,
+      snackBarTheme: const SnackBarThemeData(showCloseIcon: true),
     );
   }
 }

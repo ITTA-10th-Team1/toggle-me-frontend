@@ -80,7 +80,7 @@ class SocialLoginButton extends StatelessWidget {
         return const Text(
           'G',
           style: TextStyle(
-            color: Color(0xFF4285F4),
+            color: AppColors.google,
             fontSize: 20,
             fontWeight: FontWeight.w700,
           ),

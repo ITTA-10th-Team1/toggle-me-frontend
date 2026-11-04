@@ -2,6 +2,7 @@
     <!-- 서버(API)와 통신하려면 필요해요. 릴리스 빌드에도 적용되도록 main에 둬요. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
+        android:networkSecurityConfig="@xml/network_security_config"
         android:label="toggle_me"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
