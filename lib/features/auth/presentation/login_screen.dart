@@ -16,7 +16,9 @@ import 'widgets/primary_button.dart';
 import 'widgets/social_login_button.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.authService});
+
+  final AuthService? authService;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -30,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _idController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  late final _authService = widget.authService ?? AuthService();
 
   bool _isLoading = false;
 
@@ -59,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // ───────── 동작 ─────────
 
   Future<void> _onLoginPressed() async {
+    if (_isLoading) return; // 요청 중 중복 클릭 방지
     FocusScope.of(context).unfocus(); // 키보드 내리기
     if (!_formKey.currentState!.validate()) return;
 
@@ -70,6 +73,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       _goNextScreen(response);
     } on AuthException catch (e) {
+      if (!mounted) return;
+      // 설계서 상태 3: 로그인 실패 → 아이디는 유지, 비밀번호만 초기화
+      if (e.code == AuthErrorCode.credentialsInvalid) {
+        _passwordController.clear();
+      }
       _showMessage(e.message);
     } catch (e) {
       _showMessage('로그인 중 문제가 생겼어요.');
