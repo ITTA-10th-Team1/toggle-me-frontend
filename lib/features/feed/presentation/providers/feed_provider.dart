@@ -80,13 +80,15 @@ final feedProvider = NotifierProvider<FeedNotifier, FeedState>(
 class FeedNotifier extends Notifier<FeedState> {
   late FeedRepository _repository;
 
+  // 가장 최근에 시작한 요청을 구분하기 위한 번호
+  int _requestId = 0;
+
   @override
   FeedState build() {
     _repository = ref.read(feedRepositoryProvider);
     return const FeedState();
   }
 
-  /// 인증 토큰 적용
   /// 인증 토큰 적용
   Future<void> _ensureAccessToken() async {
     final tokenStorage = ref.read(tokenStorageProvider);
@@ -101,8 +103,8 @@ class FeedNotifier extends Notifier<FeedState> {
 
   /// 최초 조회 및 새로고침
   Future<void> fetchInitial() async {
-    if (state.isLoading) return;
-
+    // 새 요청 번호 발급
+    final requestId = ++_requestId;
     final currentSort = state.sort;
 
     state = state.copyWith(
@@ -118,6 +120,9 @@ class FeedNotifier extends Notifier<FeedState> {
 
       final items = await _repository.getAllItems(sort: currentSort.apiValue);
 
+      // 더 최신 요청이 시작됐다면 이전 응답 무시
+      if (requestId != _requestId) return;
+
       state = state.copyWith(
         items: items,
         isLoading: false,
@@ -125,6 +130,8 @@ class FeedNotifier extends Notifier<FeedState> {
         clearError: true,
       );
     } catch (e) {
+      if (requestId != _requestId) return;
+
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
@@ -134,22 +141,30 @@ class FeedNotifier extends Notifier<FeedState> {
     if (state.isLoading ||
         state.isLoadingMore ||
         !state.hasMore ||
-        state.items.isEmpty) {
+        state.items.isEmpty ||
+        state.errorMessage != null) {
       return;
     }
+
+    // 현재 요청 번호와 정렬 방식 저장
+    final requestId = _requestId;
+    final currentSort = state.sort;
 
     // 현재 목록의 마지막 아이템 ID를 cursor로 사용
     final cursor = state.items.last.id;
 
-    state = state.copyWith(isLoadingMore: true, clearError: true);
+    state = state.copyWith(isLoadingMore: true);
 
     try {
       await _ensureAccessToken();
 
       final newItems = await _repository.getAllItems(
-        sort: state.sort.apiValue,
+        sort: currentSort.apiValue,
         cursor: cursor,
       );
+
+      // 정렬 변경 등으로 이전 요청이 무효화됐다면 응답 무시
+      if (requestId != _requestId) return;
 
       if (newItems.isEmpty) {
         state = state.copyWith(isLoadingMore: false, hasMore: false);
@@ -162,14 +177,28 @@ class FeedNotifier extends Notifier<FeedState> {
         hasMore: true,
       );
     } catch (e) {
+      if (requestId != _requestId) return;
+
       state = state.copyWith(isLoadingMore: false, errorMessage: e.toString());
     }
+  }
+
+  /// 추가 조회 실패 시 사용자가 다시 시도
+  Future<void> retryLoadMore() async {
+    if (state.isLoading || state.isLoadingMore || !state.hasMore) {
+      return;
+    }
+
+    state = state.copyWith(clearError: true);
+
+    await loadMore();
   }
 
   /// 정렬 변경
   Future<void> changeSort(FeedSort sort) async {
     if (state.sort == sort) return;
 
+    // 정렬을 먼저 변경한 뒤 새로운 최초 조회 시작
     state = state.copyWith(sort: sort);
 
     await fetchInitial();

@@ -53,6 +53,25 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     await ref.read(feedProvider.notifier).loadMore();
 
     if (mounted) {
+      final state = ref.read(feedProvider);
+
+      // 추가 조회에 실패했다면 자동으로 다음 페이지를 요청하지 않음
+      if (state.errorMessage != null) return;
+
+      _loadMoreIfNeeded();
+    }
+  }
+
+  // 추가 조회 실패 후 버튼을 눌렀을 때만 재시도
+  Future<void> _retryLoadMore() async {
+    await ref.read(feedProvider.notifier).retryLoadMore();
+
+    if (mounted) {
+      final state = ref.read(feedProvider);
+
+      // 재시도도 실패했다면 자동 추가 조회 중단
+      if (state.errorMessage != null) return;
+
       _loadMoreIfNeeded();
     }
   }
@@ -68,6 +87,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         state.hasMore &&
         !state.isLoading &&
         !state.isLoadingMore &&
+        state.errorMessage == null &&
         state.items.isNotEmpty) {
       _loadNextPage();
     }
@@ -314,7 +334,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
           return Center(
             child: TextButton(
-              onPressed: _loadNextPage,
+              onPressed: _retryLoadMore,
               child: const Text('다시 시도'),
             ),
           );
