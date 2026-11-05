@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:image/image.dart' as img;
 
 import 'api_client.dart';
 
@@ -33,61 +35,72 @@ class ImageUploadService {
   final ApiClient _apiClient;
 
   static const int maxFileSize = 10 * 1024 * 1024;
+  static const int maxImageDimension = 1600;
+  static const int jpegQuality = 85;
 
-  String _contentType(String path) {
-    final extension = path.split('.').last.toLowerCase();
+  /// 긴 변을 최대 1600px로 줄이고 JPEG로 변환
+  Future<Uint8List> _convertToJpeg(File image) async {
+    final bytes = await image.readAsBytes();
+    final decodedImage = img.decodeImage(bytes);
 
-    switch (extension) {
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'heic':
-        return 'image/heic';
-      default:
-        throw Exception('JPEG, PNG, HEIC 이미지만 업로드할 수 있습니다.');
+    if (decodedImage == null) {
+      throw Exception('이미지를 읽을 수 없습니다.');
     }
+
+    final resizedImage = img.copyResize(
+      decodedImage,
+      width: decodedImage.width >= decodedImage.height
+          ? maxImageDimension
+          : null,
+      height: decodedImage.height > decodedImage.width
+          ? maxImageDimension
+          : null,
+      maintainAspect: true,
+    );
+
+    return Uint8List.fromList(
+      img.encodeJpg(resizedImage, quality: jpegQuality),
+    );
   }
 
   Future<String> upload(File image) async {
-    final fileSize = await image.length();
+    final convertedBytes = await _convertToJpeg(image);
 
-    if (fileSize == 0) {
+    if (convertedBytes.isEmpty) {
       throw Exception('이미지 파일이 비어 있습니다.');
     }
 
-    if (fileSize > maxFileSize) {
-      throw Exception('이미지는 10MB 이하만 업로드할 수 있습니다.');
+    if (convertedBytes.length > maxFileSize) {
+      throw Exception('변환된 이미지가 10MB를 초과합니다.');
     }
 
-    final contentType = _contentType(image.path);
+    const contentType = 'image/jpeg';
 
     // 1. 백엔드에 업로드 URL 요청
     final response = await _apiClient.dio.post(
       '/api/v1/images/upload-url',
-      data: {'contentType': contentType, 'contentLength': fileSize},
+      data: {
+        'contentType': contentType,
+        'contentLength': convertedBytes.length,
+      },
     );
+
+    print('이미지 업로드 URL 응답: ${response.data}');
 
     final uploadResult = ImageUploadResult.fromJson(
       Map<String, dynamic>.from(response.data),
     );
 
-    // 2. S3에 이미지 업로드
-    // 백엔드 인증 인터셉터가 없는 별도 Dio 사용
+    // 2. S3에 JPEG 이미지 업로드
     final s3Dio = Dio();
-
     final headers = Map<String, dynamic>.from(uploadResult.headers);
 
-    // 서버가 Content-Type을 내려주지 않은 경우에만 보충
     headers.putIfAbsent('Content-Type', () => contentType);
 
     try {
-      final bytes = await image.readAsBytes();
-
       await s3Dio.put(
         uploadResult.uploadUrl,
-        data: bytes,
+        data: convertedBytes,
         options: Options(
           headers: headers,
           contentType: contentType,

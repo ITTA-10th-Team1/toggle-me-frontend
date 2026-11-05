@@ -1,9 +1,12 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/item_repository.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../auth/data/token_storage.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient();
@@ -15,6 +18,10 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepository(ref.watch(apiClientProvider));
+});
+
+final tokenStorageProvider = Provider<TokenStorage>((ref) {
+  return TokenStorage();
 });
 
 class ItemUploadState {
@@ -79,6 +86,16 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
     return const ItemUploadState();
   }
 
+  Future<void> _ensureAccessToken() async {
+    final token = await ref.read(tokenStorageProvider).getAccessToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('로그인이 필요합니다.');
+    }
+
+    ref.read(apiClientProvider).setAccessToken(token);
+  }
+
   /// 사진 선택 또는 교체
   Future<void> setImage(File image) async {
     _operationId++;
@@ -87,6 +104,7 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
     state = ItemUploadState(selectedImage: image, isUploading: true);
 
     try {
+      await _ensureAccessToken();
       // 1. S3 이미지 업로드
       final imageKey = await _repository.uploadImage(image);
 
@@ -119,7 +137,6 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
     } catch (e) {
       if (operationId != _operationId) return;
 
-      // 이미지 업로드가 실패하면 등록할 수 없으므로 imageKey를 비운다.
       state = state.copyWith(
         isUploading: false,
         isGeneratingTags: false,
@@ -131,7 +148,6 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
   /// 사진 삭제
   void removeImage() {
     _operationId++;
-
     state = const ItemUploadState();
   }
 
@@ -142,14 +158,19 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
     if (selected.contains(tag)) {
       selected.remove(tag);
     } else {
+      if (selected.length >= 3) return;
       selected.add(tag);
     }
 
     state = state.copyWith(selectedTags: selected);
   }
 
-  /// 냉장고 사진 등록
-  Future<void> submit() async {
+  /// 공통 아이템 등록
+  Future<void> submit({
+    required int furnitureTypeId,
+    required String memo,
+    required String visibility,
+  }) async {
     if (state.isSubmitting) return;
 
     final imageKey = state.imageKey;
@@ -162,13 +183,30 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
     state = state.copyWith(isSubmitting: true, clearError: true);
 
     try {
-      await _repository.registerFridgeFood(imageKey: imageKey);
+      // 서비스 accessToken 설정
+      await _ensureAccessToken();
+
+      await _repository.registerItem(
+        imageKey: imageKey,
+        furnitureTypeId: furnitureTypeId,
+        memo: memo,
+        visibility: visibility,
+        tags: state.selectedTags.toList(),
+      );
+
+      state = state.copyWith(isSubmitting: false);
     } catch (e) {
+      if (e is DioException) {
+        print('실패한 API 주소: ${e.requestOptions.uri}');
+        print('HTTP 메서드: ${e.requestOptions.method}');
+        print('서버 응답: ${e.response?.data}');
+      }
+
+      print('아이템 기록 실패 원인: $e');
+
       state = state.copyWith(isSubmitting: false, errorMessage: e.toString());
       rethrow;
     }
-
-    state = state.copyWith(isSubmitting: false);
   }
 
   void clearError() {

@@ -22,7 +22,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
   final TextEditingController _memoController = TextEditingController();
 
   bool _isPublic = false;
-  int _selectedCategory = 3;
+  int? _selectedCategory;
 
   final List<_CategoryItem> _categories = const [
     _CategoryItem('화장대'),
@@ -34,6 +34,17 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     ),
     _CategoryItem('책상'),
   ];
+
+  int? get _selectedFurnitureTypeId {
+    switch (_selectedCategory) {
+      case 1:
+        return 1; // 거울
+      case 3:
+        return 2; // 냉장고
+      default:
+        return null; // 아직 ID를 모르는 가구
+    }
+  }
 
   @override
   void dispose() {
@@ -143,6 +154,17 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 
   Future<void> _handleSubmit() async {
     final uploadState = ref.read(itemUploadProvider);
+    final furnitureTypeId = _selectedFurnitureTypeId;
+
+    if (_selectedCategory == null) {
+      _showMessage('가구를 먼저 선택해 주세요.');
+      return;
+    }
+
+    if (furnitureTypeId == null) {
+      _showMessage('아직 등록할 수 없는 가구입니다.');
+      return;
+    }
 
     if (uploadState.selectedImage == null) {
       _showMessage('사진을 먼저 선택해 주세요.');
@@ -160,13 +182,21 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     }
 
     try {
-      await ref.read(itemUploadProvider.notifier).submit();
+      await ref
+          .read(itemUploadProvider.notifier)
+          .submit(
+            furnitureTypeId: furnitureTypeId,
+            memo: _memoController.text.trim(),
+            visibility: _isPublic ? 'PUBLIC' : 'PRIVATE',
+          );
 
       if (!mounted) return;
 
       _showMessage('사진이 기록되었습니다.');
       context.pop();
     } catch (e) {
+      debugPrint('아이템 기록 실패 원인: $e');
+
       if (!mounted) return;
 
       _showMessage('기록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -417,7 +447,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: _categories.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               final category = _categories[index];
               final selected = _selectedCategory == index;

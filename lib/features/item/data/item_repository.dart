@@ -24,6 +24,8 @@ class ItemRepository {
       data: {'imageKey': imageKey},
     );
 
+    print('AI 분석 요청 응답: ${response.data}');
+
     final result = ImageAnalysisResult.fromJson(
       Map<String, dynamic>.from(response.data),
     );
@@ -44,13 +46,9 @@ class ItemRepository {
     switch (result.status) {
       case 'COMPLETED':
         return result.tags;
-
       case 'FAILED':
-        return [];
-
       case 'PENDING':
         return [];
-
       default:
         throw Exception('알 수 없는 AI 분석 상태입니다.');
     }
@@ -90,29 +88,51 @@ class ItemRepository {
         if (result.status == 'FAILED') {
           return [];
         }
-      } catch (_) {
-        // 일시적인 분석 조회 오류는 다음 주기에 재시도
+      } catch (e) {
+        print('AI 분석 결과 조회 실패: $e');
+        rethrow;
       }
     }
 
     return [];
   }
 
-  /// 냉장고 사진 등록
-  Future<void> registerFridgeFood({required String imageKey}) async {
-    final now = DateTime.now();
+  /// 공통 아이템 등록
+  Future<void> registerItem({
+    required String imageKey,
+    required int furnitureTypeId,
+    required String memo,
+    required String visibility,
+    required List<String> tags,
+  }) async {
+    // 태그 앞뒤의 공백과 # 제거, 소문자 변환, 중복 제거
+    final normalizedTags = <String>[];
+    final seenTags = <String>{};
 
-    final recordedOn =
-        '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}-'
-        '${now.day.toString().padLeft(2, '0')}';
+    for (final tag in tags) {
+      final normalized = tag
+          .trim()
+          .replaceAll(RegExp(r'^#+|#+$'), '')
+          .trim()
+          .toLowerCase();
+
+      if (normalized.isNotEmpty && seenTags.add(normalized)) {
+        normalizedTags.add(normalized);
+      }
+    }
+
+    if (normalizedTags.length > 3) {
+      throw ArgumentError('태그는 최대 3개까지 선택할 수 있습니다.');
+    }
 
     await _apiClient.dio.post(
-      '/api/v1/fridge/foods',
+      '/api/v1/items',
       data: {
         'imageKey': imageKey,
-        'recordedOn': recordedOn,
-        'visibility': 'PRIVATE',
+        'furnitureTypeId': furnitureTypeId,
+        'memo': memo,
+        'visibility': visibility,
+        'tags': normalizedTags,
       },
     );
   }

@@ -28,7 +28,7 @@ class ImageAnalysisResult {
   final String analysisId;
 
   factory ImageAnalysisResult.fromJson(Map<String, dynamic> json) {
-    return ImageAnalysisResult(analysisId: json['analysisId'] as String);
+    return ImageAnalysisResult(analysisId: json['analysisId'].toString());
   }
 }
 
