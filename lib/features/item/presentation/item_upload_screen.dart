@@ -10,6 +10,9 @@ import 'package:toggle_me/app/theme/app_colors.dart';
 import '../data/item_image_picker.dart';
 import 'providers/item_upload_provider.dart';
 
+import 'package:toggle_me/core/widgets/room_mode_toggle.dart';
+import 'package:toggle_me/core/widgets/app_notice.dart';
+
 class ItemUploadScreen extends ConsumerStatefulWidget {
   const ItemUploadScreen({super.key});
 
@@ -53,6 +56,8 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
   }
 
   Future<void> _showImagePicker() async {
+    if (ref.read(itemUploadProvider).isSubmitting) return;
+
     await showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
@@ -84,6 +89,8 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    if (ref.read(itemUploadProvider).isSubmitting) return;
+
     final File? image;
 
     if (source == ImageSource.gallery) {
@@ -106,10 +113,14 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
   }
 
   void _removeImage() {
+    if (ref.read(itemUploadProvider).isSubmitting) return;
+
     ref.read(itemUploadProvider.notifier).removeImage();
   }
 
   Future<void> _showCancelDialog() async {
+    if (ref.read(itemUploadProvider).isSubmitting) return;
+
     final uploadState = ref.read(itemUploadProvider);
 
     final hasContent =
@@ -204,49 +215,54 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showAppNotice(context, message);
   }
 
   @override
   Widget build(BuildContext context) {
     final uploadState = ref.watch(itemUploadProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildImageArea(uploadState),
-                    const SizedBox(height: 22),
-                    _buildTagSection(uploadState),
-                    const SizedBox(height: 22),
-                    _buildCategorySection(),
-                    const SizedBox(height: 22),
-                    _buildMemoSection(),
-                    const SizedBox(height: 28),
-                    _buildVisibilitySection(),
-                    const SizedBox(height: 12),
-                  ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _showCancelDialog();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(uploadState),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildImageArea(uploadState),
+                      const SizedBox(height: 22),
+                      _buildTagSection(uploadState),
+                      const SizedBox(height: 22),
+                      _buildCategorySection(uploadState),
+                      const SizedBox(height: 22),
+                      _buildMemoSection(uploadState),
+                      const SizedBox(height: 28),
+                      _buildVisibilitySection(uploadState),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _buildBottomButtons(uploadState),
-          ],
+              _buildBottomButtons(uploadState),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ItemUploadState state) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
       child: Row(
@@ -265,7 +281,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
             color: AppColors.buttonSecondary,
             shape: const CircleBorder(),
             child: IconButton(
-              onPressed: _showCancelDialog,
+              onPressed: state.isSubmitting ? null : _showCancelDialog,
               icon: const Icon(Icons.close, size: 21, color: AppColors.black),
               visualDensity: VisualDensity.compact,
             ),
@@ -351,9 +367,17 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
             right: 8,
             child: Row(
               children: [
-                _imageActionButton(Icons.refresh, _showImagePicker),
+                _imageActionButton(
+                  Icons.refresh,
+                  _showImagePicker,
+                  state.isSubmitting,
+                ),
                 const SizedBox(width: 6),
-                _imageActionButton(Icons.delete_outline, _removeImage),
+                _imageActionButton(
+                  Icons.delete_outline,
+                  _removeImage,
+                  state.isSubmitting,
+                ),
               ],
             ),
           ),
@@ -362,12 +386,16 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     );
   }
 
-  Widget _imageActionButton(IconData icon, VoidCallback onPressed) {
+  Widget _imageActionButton(
+    IconData icon,
+    VoidCallback onPressed,
+    bool isSubmitting,
+  ) {
     return Material(
       color: AppColors.white,
       shape: const CircleBorder(),
       child: IconButton(
-        onPressed: onPressed,
+        onPressed: isSubmitting ? null : onPressed,
         icon: Icon(icon, color: AppColors.black, size: 20),
         visualDensity: VisualDensity.compact,
       ),
@@ -419,9 +447,11 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                   fontSize: 12,
                   color: selected ? AppColors.primary : AppColors.textSecondary,
                 ),
-                onSelected: (_) {
-                  ref.read(itemUploadProvider.notifier).toggleTag(tag);
-                },
+                onSelected: state.isSubmitting
+                    ? null
+                    : (_) {
+                        ref.read(itemUploadProvider.notifier).toggleTag(tag);
+                      },
               );
             }).toList(),
           ),
@@ -436,7 +466,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     );
   }
 
-  Widget _buildCategorySection() {
+  Widget _buildCategorySection(ItemUploadState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -453,11 +483,13 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
               final selected = _selectedCategory == index;
 
               return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedCategory = index;
-                  });
-                },
+                onTap: state.isSubmitting
+                    ? null
+                    : () {
+                        setState(() {
+                          _selectedCategory = index;
+                        });
+                      },
                 child: Container(
                   width: 76,
                   decoration: BoxDecoration(
@@ -506,7 +538,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     );
   }
 
-  Widget _buildMemoSection() {
+  Widget _buildMemoSection(ItemUploadState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -529,12 +561,13 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
               borderSide: BorderSide.none,
             ),
           ),
+          enabled: !state.isSubmitting,
         ),
       ],
     );
   }
 
-  Widget _buildVisibilitySection() {
+  Widget _buildVisibilitySection(ItemUploadState state) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
       decoration: BoxDecoration(
@@ -566,17 +599,15 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
               ],
             ),
           ),
-          Switch(
-            value: _isPublic,
-            activeThumbColor: AppColors.white,
-            activeTrackColor: AppColors.primary,
-            inactiveThumbColor: AppColors.white,
-            inactiveTrackColor: AppColors.toggleOff,
-            onChanged: (value) {
-              setState(() {
-                _isPublic = value;
-              });
-            },
+          RoomModeToggle(
+            isOn: _isPublic,
+            onChanged: state.isSubmitting
+                ? null
+                : (value) {
+                    setState(() {
+                      _isPublic = value;
+                    });
+                  },
           ),
         ],
       ),
@@ -593,7 +624,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
             child: SizedBox(
               height: 48,
               child: OutlinedButton(
-                onPressed: _showCancelDialog,
+                onPressed: state.isSubmitting ? null : _showCancelDialog,
                 style: OutlinedButton.styleFrom(
                   backgroundColor: AppColors.buttonSecondary,
                   foregroundColor: AppColors.textSecondary,

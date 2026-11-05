@@ -98,6 +98,8 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
 
   /// 사진 선택 또는 교체
   Future<void> setImage(File image) async {
+    if (state.isSubmitting) return;
+
     _operationId++;
     final operationId = _operationId;
 
@@ -147,12 +149,16 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
 
   /// 사진 삭제
   void removeImage() {
+    if (state.isSubmitting) return;
+
     _operationId++;
     state = const ItemUploadState();
   }
 
   /// 태그 선택
   void toggleTag(String tag) {
+    if (state.isSubmitting) return;
+
     final selected = Set<String>.from(state.selectedTags);
 
     if (selected.contains(tag)) {
@@ -194,7 +200,7 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
         tags: state.selectedTags.toList(),
       );
 
-      state = state.copyWith(isSubmitting: false);
+      state = const ItemUploadState();
     } catch (e) {
       if (e is DioException) {
         print('실패한 API 주소: ${e.requestOptions.uri}');

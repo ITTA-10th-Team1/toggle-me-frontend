@@ -6,7 +6,7 @@ class ApiClient {
 
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://api.toggleme.site',
+        baseUrl: apiBaseUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         sendTimeout: const Duration(seconds: 30),
@@ -28,6 +28,8 @@ class ApiClient {
       ),
     );
   }
+
+  static const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
   late final Dio _dio;
   String? _accessToken;
