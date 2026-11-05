@@ -8,9 +8,10 @@ import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 import 'room_scene_bridge.dart';
 import 'room_camera_config.dart';
+import 'room_lighting_config.dart';
+import 'room_bottom_bar.dart';
 import 'room_mood_hashtags.dart';
 import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_text_styles.dart';
 import '../../../core/widgets/room_mode_toggle.dart';
 import '../domain/room_visibility.dart';
 
@@ -188,7 +189,6 @@ class _RoomScreenState extends State<RoomScreen> {
   }
 
   static const _background = AppColors.roomBackground;
-  static const _orange = AppColors.roomAccent;
   static const _ivory = AppColors.surfaceMuted;
   static const _categories = [
     ('화장대', 'vanity'),
@@ -273,10 +273,14 @@ class _RoomScreenState extends State<RoomScreen> {
                         alignment: Alignment.center,
                         children: [
                           ModelViewer(
-                            key: ValueKey('demo-room-v8-$_attempt'),
+                            key: ValueKey('demo-room-v11-$_attempt'),
                             src: 'assets/models/toggleme_room.glb',
                             alt: '나의 3D 방',
                             backgroundColor: _background,
+                            environmentImage: RoomLightingConfig.environment,
+                            exposure: RoomLightingConfig.exposure,
+                            shadowIntensity: RoomLightingConfig.shadowIntensity,
+                            shadowSoftness: RoomLightingConfig.shadowSoftness,
                             loading: Loading.eager,
                             cameraControls: false,
                             disablePan: true,
@@ -436,51 +440,12 @@ class _RoomScreenState extends State<RoomScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 112,
-                          height: 52,
-                          child: ElevatedButton.icon(
-                            onPressed: widget.onRecord,
-                            icon: const Icon(Icons.add, size: 20),
-                            label: const Text(
-                              '기록하기',
-                              style: AppTextStyles.buttonSmall,
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              backgroundColor: _orange,
-                              foregroundColor: AppColors.textPrimary,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(36),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Container(
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: _ivory,
-                              borderRadius: BorderRadius.circular(36),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _nav('guestbook', '방명록', widget.onGuestbook),
-                                _nav('shop', '상점', widget.onShop),
-                                _nav('mood', '무드레포트', widget.onMood),
-                                _nav('friends', '친구목록', widget.onFriends),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: RoomBottomBar(
+                      onRecord: widget.onRecord,
+                      onGuestbook: widget.onGuestbook,
+                      onShop: widget.onShop,
+                      onMood: widget.onMood,
+                      onFriends: widget.onFriends,
                     ),
                   ),
                 ],
@@ -491,14 +456,4 @@ class _RoomScreenState extends State<RoomScreen> {
       ),
     );
   }
-
-  Widget _nav(String asset, String tooltip, VoidCallback? onPressed) =>
-      IconButton(
-        tooltip: tooltip,
-        onPressed: onPressed,
-        icon: _svg(asset, width: 46, height: 46),
-        iconSize: 46,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(minWidth: 46, minHeight: 46),
-      );
 }
