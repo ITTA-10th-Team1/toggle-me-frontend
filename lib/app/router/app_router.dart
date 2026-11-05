@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/dev_placeholder_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/item/presentation/item_upload_screen.dart';
 import '../../features/onboarding/presentation/guest_intro_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/room/presentation/room_screen.dart';
@@ -76,10 +77,7 @@ final GoRouter appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.itemCreate,
-      builder: (context, state) => const DevPlaceholderScreen(
-        title: '기록하기',
-        description: '아이템 기록 화면 준비 중',
-      ),
+      builder: (context, state) => const ItemUploadScreen(),
     ),
 
     GoRoute(

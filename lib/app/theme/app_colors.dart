@@ -4,7 +4,17 @@ abstract final class AppColors {
   static const Color primary = Color(0xFFFF9638);
 
   static const Color textPrimary = Color(0xFF171717);
+  static const Color textSecondary = Color(0xFF545454);
+  static const Color black = Color(0xFF000000);
   static const Color white = Color(0xFFFFFFFF);
+
+  static const Color background = Color(0xFFFFF9F0);
+  static const Color uploadBackground = Color(0xFFFFE8DC);
+  static const Color border = Color(0xFFD3D3D3);
+  static const Color buttonSecondary = Color(0xFFF5F5F5);
+  static const Color chipBackground = Color(0xFFF5F0E8);
+  static const Color onboardingTextSecondary = Color(0xFF292929);
+
   static const Color disabled = Color(0xFFE0E0E0);
 
   static const Color guestButton = Color(0x99FFFFFF);
@@ -12,18 +22,19 @@ abstract final class AppColors {
 
   static const Color toggleOn = primary;
   static const Color toggleOff = Color(0xFF777777);
+  static const Color darkIvory = Color(0xFFF8F0E5);
+  static const Color textHint = Color(0xFF9E9E9E);
+  static const Color inputBackground = Color(0xFFF5F5F5);
+
+  // Room
   static const Color roomBackground = Color(0xFFFFFAF1);
   static const Color surfaceMuted = Color(0xFFF8F0E5);
   static const Color textMuted = toggleOff;
-  static const Color textSecondary = Color(0xFF616161);
-  static const Color onboardingTextSecondary = Color(0xFF292929);
-  static const Color textHint = hint;
-  static const Color inputBackground = fieldBackground;
   static const Color fieldBackground = Color(0xFFF5F5F5);
   static const Color hint = Color(0xFF9E9E9E);
   static const Color subText = Color(0xFF616161);
-  static const Color border = disabled;
-  // Current screen-specific shades; retain until design confirms one palette.
+
+  // Screen-specific colors
   static const Color roomAccent = Color(0xFFFF813B);
   static const Color authAccent = Color(0xFFF07B3F);
   static const Color authBlack = Color(0xFF1A1A1A);
