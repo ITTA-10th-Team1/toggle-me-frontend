@@ -12,6 +12,7 @@ import '../../features/room/presentation/room_screen.dart';
 import '../../features/room/presentation/room_presentation_config.dart';
 import '../../features/social/presentation/friend_list_screen.dart';
 import '../../features/pinboard/presentation/pinboard_screen.dart';
+import '../../features/feed/presentation/feed_screen.dart';
 import 'app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -70,10 +71,7 @@ final GoRouter appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.items,
-      builder: (context, state) => const DevPlaceholderScreen(
-        title: '아이템 목록',
-        description: '아이템 목록 화면 준비 중',
-      ),
+      builder: (context, state) => const FeedScreen(),
     ),
 
     GoRoute(
