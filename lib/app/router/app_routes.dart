@@ -10,6 +10,7 @@ class AppRoutes {
   static const room = '/room';
   static const items = '/items';
   static const itemCreate = '/items/create';
+  static const itemDetail = '/items/:itemId';
 
   static const pinboard = '/pinboard';
   static const guestbook = '/guestbook';

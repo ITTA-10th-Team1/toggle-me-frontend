@@ -13,6 +13,7 @@ import '../../features/room/presentation/room_presentation_config.dart';
 import '../../features/social/presentation/friend_list_screen.dart';
 import '../../features/pinboard/presentation/pinboard_screen.dart';
 import '../../features/feed/presentation/feed_screen.dart';
+import '../../features/item_detail/presentation/item_detail_screen.dart';
 import 'app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -77,6 +78,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.itemCreate,
       builder: (context, state) => const ItemUploadScreen(),
+    ),
+
+    GoRoute(
+      path: AppRoutes.itemDetail,
+      builder: (context, state) {
+        final itemId = int.parse(state.pathParameters['itemId']!);
+
+        return ItemDetailScreen(itemId: itemId);
+      },
     ),
 
     GoRoute(
