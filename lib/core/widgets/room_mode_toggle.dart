@@ -40,9 +40,19 @@ class RoomModeToggle extends StatelessWidget {
                 curve: Curves.easeInOut,
                 width: 60.86,
                 height: 36,
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 3.346,
+                  vertical: 2.559,
+                ),
                 decoration: BoxDecoration(
-                  color: isOn ? AppColors.toggleOn : AppColors.toggleOff,
+                  color: isOn ? AppColors.white : AppColors.toggleOffTrack,
+                  border: Border.all(
+                    color: isOn
+                        ? AppColors.toggleOnBorder
+                        : AppColors.toggleOffBorder,
+                    width: 0.573429,
+                    strokeAlign: BorderSide.strokeAlignInside,
+                  ),
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: AnimatedAlign(
@@ -52,21 +62,39 @@ class RoomModeToggle extends StatelessWidget {
                       ? Alignment.centerRight
                       : Alignment.centerLeft,
                   child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: const BoxDecoration(
-                      color: AppColors.white,
+                    width: 29.7354,
+                    height: 29.7354,
+                    decoration: BoxDecoration(
+                      color: isOn
+                          ? AppColors.toggleOn
+                          : AppColors.toggleOffThumb,
                       shape: BoxShape.circle,
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x3B000000),
+                          offset: Offset(-1.14686, 1.14686),
+                          blurRadius: 4.12868,
+                          spreadRadius: -1.14686,
+                        ),
+                      ],
                     ),
                     child: isLoading
-                        ? const Padding(
+                        ? Padding(
                             padding: EdgeInsets.all(6),
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.toggleOff,
+                              color: isOn
+                                  ? AppColors.white
+                                  : AppColors.toggleOffTrack,
                             ),
                           )
-                        : null,
+                        : Center(
+                            child: _WindowMark(
+                              color: isOn
+                                  ? AppColors.white
+                                  : AppColors.toggleOffTrack,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -76,4 +104,33 @@ class RoomModeToggle extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Four rounded panes drawn as widgets, matching the designer's SVG geometry.
+class _WindowMark extends StatelessWidget {
+  const _WindowMark({required this.color});
+
+  final Color color;
+
+  Widget pane() => Container(
+    width: 5.01271,
+    height: 5.01271,
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(0.420088),
+    ),
+  );
+
+  Widget row() => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [pane(), const SizedBox(width: 0.76279), pane()],
+  );
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [row(), const SizedBox(height: 0.54499), row()],
+    ),
+  );
 }

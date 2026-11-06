@@ -20,7 +20,11 @@ abstract final class AppColors {
   static const Color guestButton = Color(0x99FFFFFF);
   static const Color loginButton = textPrimary;
 
-  static const Color toggleOn = primary;
+  static const Color toggleOn = Color(0xFFFF813B);
+  static const Color toggleOnBorder = Color(0xFF623015);
+  static const Color toggleOffTrack = Color(0xFFA1ABB7);
+  static const Color toggleOffThumb = Color(0xFF00152D);
+  static const Color toggleOffBorder = Color(0xFF626A74);
   static const Color toggleOff = Color(0xFF777777);
   static const Color darkIvory = Color(0xFFF8F0E5);
   static const Color textHint = Color(0xFF9E9E9E);
