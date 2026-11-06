@@ -245,7 +245,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       spacing: 7,
       runSpacing: 7,
       children: tags.isEmpty
-          ? [_tagChip('등록된 태그가 없어요', enabled: false)]
+          ? [_tagChip('#', enabled: false)]
           : tags.map((tag) => _tagChip('#$tag')).toList(),
     );
   }

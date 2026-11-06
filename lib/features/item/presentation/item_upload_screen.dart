@@ -242,12 +242,12 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                     children: [
                       _buildImageArea(uploadState),
                       const SizedBox(height: 22),
+                      _buildMemoSection(uploadState),
+                      const SizedBox(height: 28),
                       _buildTagSection(uploadState),
                       const SizedBox(height: 22),
                       _buildCategorySection(uploadState),
                       const SizedBox(height: 22),
-                      _buildMemoSection(uploadState),
-                      const SizedBox(height: 28),
                       _buildVisibilitySection(uploadState),
                       const SizedBox(height: 12),
                     ],
@@ -270,20 +270,26 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
           const Expanded(
             child: Text(
               '어떤 취향을 기록할까요?',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.5,
                 color: AppColors.textPrimary,
               ),
             ),
           ),
           Material(
-            color: AppColors.buttonSecondary,
+            color: AppColors.darkIvory,
             shape: const CircleBorder(),
-            child: IconButton(
-              onPressed: state.isSubmitting ? null : _showCancelDialog,
-              icon: const Icon(Icons.close, size: 21, color: AppColors.black),
-              visualDensity: VisualDensity.compact,
+            child: SizedBox(
+              width: 46,
+              height: 46,
+              child: IconButton(
+                onPressed: state.isSubmitting ? null : _showCancelDialog,
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.close, size: 21, color: AppColors.black),
+              ),
             ),
           ),
         ],
@@ -298,14 +304,14 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       onTap: image == null ? _showImagePicker : null,
       child: Container(
         width: double.infinity,
-        height: 185,
+        height: 181,
         decoration: BoxDecoration(
           color: AppColors.uploadBackground,
           borderRadius: BorderRadius.circular(14),
         ),
         child: CustomPaint(
           painter: const _DashedBorderPainter(
-            color: AppColors.primary,
+            color: AppColors.roomAccent,
             radius: 14,
           ),
           child: image == null
@@ -321,8 +327,8 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircleAvatar(
-          radius: 20,
-          backgroundColor: AppColors.primary,
+          radius: 23,
+          backgroundColor: AppColors.roomAccent,
           child: Icon(Icons.add, color: AppColors.black, size: 25),
         ),
         SizedBox(height: 10),
@@ -330,8 +336,9 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
           '사진을 올려주세요',
           style: TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+            fontSize: 18,
+            fontWeight: FontWeight.w400,
+            letterSpacing: -0.45,
           ),
         ),
       ],
@@ -473,7 +480,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
         _sectionTitle('카테고리'),
         const SizedBox(height: 10),
         SizedBox(
-          height: 88,
+          height: 90,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: _categories.length,
@@ -491,16 +498,26 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                         });
                       },
                 child: Container(
-                  width: 76,
+                  width: 90,
                   decoration: BoxDecoration(
                     color: selected
                         ? AppColors.uploadBackground
                         : AppColors.white,
                     borderRadius: BorderRadius.circular(13),
                     border: Border.all(
-                      color: selected ? AppColors.primary : AppColors.border,
+                      color: selected
+                          ? AppColors.roomAccent
+                          : AppColors.darkIvory,
                       width: selected ? 1.5 : 1,
                     ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.darkIvory,
+                        blurRadius: 4,
+                        spreadRadius: 0,
+                        offset: Offset.zero,
+                      ),
+                    ],
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -510,7 +527,8 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                       Text(
                         category.name,
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
+                          letterSpacing: -0.45,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -645,7 +663,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
               child: ElevatedButton(
                 onPressed: state.isSubmitting ? null : _handleSubmit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.roomAccent,
                   disabledBackgroundColor: AppColors.disabled,
                   foregroundColor: AppColors.black,
                   disabledForegroundColor: AppColors.textSecondary,
