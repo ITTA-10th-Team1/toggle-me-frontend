@@ -342,23 +342,32 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
         final item = state.items[index];
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(5),
-          child: Image.network(
-            item.imageUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: AppColors.darkIvory,
-                child: const Center(
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    color: AppColors.textSecondary,
-                    size: 20,
+        return GestureDetector(
+          onTap: () async {
+            final deleted = await context.push<bool>('/items/${item.id}');
+
+            if (deleted == true && mounted) {
+              await ref.read(feedProvider.notifier).fetchInitial();
+            }
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: Image.network(
+              item.imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: AppColors.darkIvory,
+                  child: const Center(
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         );
       },
