@@ -4,6 +4,8 @@ import '../../../item/presentation/providers/item_upload_provider.dart';
 import '../../data/item_detail_model.dart';
 import '../../data/item_detail_repository.dart';
 
+import 'package:flutter/foundation.dart';
+
 final itemDetailRepositoryProvider = Provider<ItemDetailRepository>((ref) {
   return ItemDetailRepository(ref.watch(apiClientProvider));
 });
@@ -132,8 +134,12 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
         isLoadingRecommendations: false,
         hasLoadedRecommendations: true,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (requestId != _recommendationRequestId) return;
+
+      debugPrint('========== AI 추천 Provider 오류 ==========');
+      debugPrint('[AI 추천] error: $e');
+      debugPrint('[AI 추천] stackTrace: $stackTrace');
 
       state = state.copyWith(
         isLoadingRecommendations: false,
