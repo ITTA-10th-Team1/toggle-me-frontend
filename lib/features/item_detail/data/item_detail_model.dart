@@ -36,3 +36,17 @@ class ItemDetailModel {
     );
   }
 }
+
+class ItemRecommendationModel {
+  const ItemRecommendationModel({required this.name, this.imageUrl});
+
+  final String name;
+  final String? imageUrl;
+
+  factory ItemRecommendationModel.fromJson(Map<String, dynamic> json) {
+    return ItemRecommendationModel(
+      name: json['name']?.toString() ?? '',
+      imageUrl: json['imageUrl']?.toString(),
+    );
+  }
+}

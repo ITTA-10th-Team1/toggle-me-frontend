@@ -7,6 +7,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/app_notice.dart';
 import '../../../core/widgets/room_mode_toggle.dart';
 import 'providers/item_detail_provider.dart';
+import '../data/item_detail_model.dart';
 
 class ItemDetailScreen extends ConsumerStatefulWidget {
   const ItemDetailScreen({super.key, required this.itemId});
@@ -74,19 +75,22 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(itemDetailProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(state.isDeleting),
-            Expanded(child: _buildBody(state)),
-            if (state.item != null)
-              Container(
-                color: AppColors.background,
-                child: _buildBottomButtons(state.isDeleting),
-              ),
-          ],
+    return PopScope(
+      canPop: !state.isDeleting,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(state.isDeleting),
+              Expanded(child: _buildBody(state)),
+              if (state.item != null)
+                Container(
+                  color: AppColors.background,
+                  child: _buildBottomButtons(state.isDeleting),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -129,7 +133,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       );
     }
 
-    if (state.errorMessage != null || state.item == null) {
+    if (state.item == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -165,7 +169,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           const SizedBox(height: 18),
           _buildVisibilitySection(item.isPublic),
           const SizedBox(height: 18),
-          _buildRecommendationSection(item.furnitureTypeId),
+          _buildRecommendationSection(item.furnitureTypeId, item.id, state),
         ],
       ),
     );
@@ -306,8 +310,12 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     );
   }
 
-  Widget _buildRecommendationSection(int furnitureTypeId) {
-    // 현재는 냉장고(furnitureTypeId: 2)만 유사 아이템 추천 대상이다.
+  Widget _buildRecommendationSection(
+    int furnitureTypeId,
+    int itemId,
+    ItemDetailState state,
+  ) {
+    // 냉장고(furnitureTypeId: 2)만 AI 음식 추천 대상
     if (furnitureTypeId != 2) return const SizedBox.shrink();
 
     return Column(
@@ -315,14 +323,22 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       children: [
         InkWell(
           onTap: () {
+            final shouldExpand = !_isRecommendationExpanded;
+
             setState(() {
-              _isRecommendationExpanded = !_isRecommendationExpanded;
+              _isRecommendationExpanded = shouldExpand;
             });
+
+            if (shouldExpand) {
+              ref
+                  .read(itemDetailProvider.notifier)
+                  .fetchRecommendations(itemId);
+            }
           },
           child: Row(
             children: [
               const Text(
-                'AI가 추천하는 유사 아이템',
+                'AI가 추천하는 음식',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -342,50 +358,109 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         ),
         if (_isRecommendationExpanded) ...[
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _recommendationPlaceholder(0)),
-              const SizedBox(width: 8),
-              Expanded(child: _recommendationPlaceholder(1)),
-              const SizedBox(width: 8),
-              Expanded(child: _recommendationPlaceholder(2)),
-            ],
-          ),
+
+          if (state.isLoadingRecommendations)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            )
+          else if (state.recommendationError != null)
+            Center(
+              child: Column(
+                children: [
+                  const Text(
+                    '음식 추천을 불러오지 못했어요.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => ref
+                        .read(itemDetailProvider.notifier)
+                        .fetchRecommendations(itemId),
+                    child: const Text(
+                      '다시 시도',
+                      style: TextStyle(color: AppColors.primary),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (state.recommendations.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Text(
+                  '추천할 음식이 없어요.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: 180,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: state.recommendations.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  return _buildRecommendationCard(state.recommendations[index]);
+                },
+              ),
+            ),
         ],
       ],
     );
   }
 
-  Widget _recommendationPlaceholder(int index) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AspectRatio(
-          aspectRatio: 108.66 / 144.876,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: _imagePlaceholder(),
+  Widget _buildRecommendationCard(ItemRecommendationModel item) {
+    return SizedBox(
+      width: 108,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 108.66 / 144.876,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: item.imageUrl == null || item.imageUrl!.isEmpty
+                  ? _imagePlaceholder()
+                  : Image.network(
+                      item.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return _imagePlaceholder(
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
-        ),
-        const SizedBox(height: 5),
-        const Text(
-          '타이틀',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+          const SizedBox(height: 5),
+          Text(
+            item.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
           ),
-        ),
-        const Text(
-          '설명',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 9, color: AppColors.textSecondary),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
