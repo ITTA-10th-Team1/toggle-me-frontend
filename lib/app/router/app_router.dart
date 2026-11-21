@@ -11,6 +11,7 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/room/presentation/room_screen.dart';
 import '../../features/room/presentation/room_presentation_config.dart';
 import '../../features/social/presentation/friend_list_screen.dart';
+import '../../features/social/presentation/widgets/share_taste_dialog.dart';
 import '../../features/pinboard/presentation/pinboard_screen.dart';
 import '../../features/feed/presentation/feed_screen.dart';
 import '../../features/item_detail/presentation/item_detail_screen.dart';
@@ -64,7 +65,14 @@ final GoRouter appRouter = GoRouter(
         onGuestbook: () => context.push(AppRoutes.guestbook),
         onShop: () => context.push(AppRoutes.shop),
         onMood: () => context.push(AppRoutes.calendar),
-        onFriends: () => context.push(AppRoutes.social),
+        // 공유하기 팝업 (#38). 태그는 홈 화면 해시태그와 같은 데이터
+        // TODO(share): 닉네임은 회원 정보 저장 위치가 정해지면 넘기기
+        onFriends: () => showShareTasteDialog(
+          context,
+          tags: RoomPresentationConfig.moodHashtags
+              .map((tag) => tag.text)
+              .toList(),
+        ),
         onCategory: (category) {
           showAppNotice(context, '$category 기능은 준비 중입니다.');
         },
