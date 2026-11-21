@@ -17,21 +17,27 @@ class RoomMoodHashtags extends StatelessWidget {
   Widget build(BuildContext context) {
     if (tags.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 36,
+      height: 44,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         itemCount: tags.length > 5 ? 5 : tags.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 7),
+        separatorBuilder: (_, _) => const SizedBox(width: 5),
         itemBuilder: (context, index) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           decoration: BoxDecoration(
             color: AppColors.surfaceMuted,
             borderRadius: BorderRadius.circular(55),
           ),
           child: Text(
             '#${tags[index].text}',
-            style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+            style: const TextStyle(
+              fontSize: 16,
+              height: 1.5,
+              letterSpacing: -0.4,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF6A6763),
+            ),
           ),
         ),
       ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_text_styles.dart';
 
 /// One continuous capsule with five independently accessible actions.
 class RoomBottomBar extends StatelessWidget {
@@ -30,29 +29,57 @@ class RoomBottomBar extends StatelessWidget {
         child: SizedBox(
           height: 52,
           child: LayoutBuilder(
-            builder: (context, constraints) => Row(
-              children: [
-                SizedBox(
-                  width: (constraints.maxWidth * 0.35).clamp(104.0, 112.0),
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    onPressed: onRecord,
-                    icon: const Icon(Icons.add, size: 20),
-                    label: const Text('기록하기', style: AppTextStyles.buttonSmall),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      backgroundColor: AppColors.roomAccent,
-                      foregroundColor: AppColors.textPrimary,
-                      elevation: 0,
-                      shape: const StadiumBorder(),
+            builder: (context, constraints) => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: constraints.maxWidth < 314 ? 314 : constraints.maxWidth,
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width:
+                          (constraints.maxWidth < 314
+                              ? 314
+                              : constraints.maxWidth) -
+                          204,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: onRecord,
+
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          backgroundColor: AppColors.roomAccent,
+                          foregroundColor: AppColors.textPrimary,
+                          elevation: 0,
+                          shape: const StadiumBorder(),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add, size: 20),
+                            SizedBox(width: 10),
+                            Text(
+                              '기록하기',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 5),
+                    _action('guestbook', '방명록', onGuestbook),
+                    const SizedBox(width: 5),
+                    _action('shop', '상점', onShop),
+                    const SizedBox(width: 5),
+                    _action('mood', '무드레포트', onMood),
+                    const SizedBox(width: 5),
+                    _action('friends', '친구목록', onFriends),
+                  ],
                 ),
-                _action('guestbook', '방명록', onGuestbook),
-                _action('shop', '상점', onShop),
-                _action('mood', '무드레포트', onMood),
-                _action('friends', '친구목록', onFriends),
-              ],
+              ),
             ),
           ),
         ),
@@ -61,7 +88,8 @@ class RoomBottomBar extends StatelessWidget {
   }
 
   Widget _action(String asset, String label, VoidCallback? onPressed) {
-    return Expanded(
+    return SizedBox(
+      width: 46,
       child: IconButton(
         tooltip: label,
         onPressed: onPressed,

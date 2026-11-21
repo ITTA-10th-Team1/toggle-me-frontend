@@ -58,6 +58,7 @@ final GoRouter appRouter = GoRouter(
           ).toString(),
         ),
         onProfile: () => context.push(AppRoutes.mypage),
+        onLogout: () => context.go(AppRoutes.login),
         onNotifications: () => context.push(AppRoutes.notifications),
         onRecord: () => context.push(AppRoutes.itemCreate),
         onGuestbook: () => context.push(AppRoutes.guestbook),
