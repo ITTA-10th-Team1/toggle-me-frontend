@@ -355,7 +355,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     if (!mounted) return;
 
     if (success) {
-      _lastLoadedMemo = ref.read(itemDetailProvider).item?.memo;
+      final savedMemo = ref.read(itemDetailProvider).item?.memo ?? '';
+
+      _memoController.text = savedMemo;
+      _lastLoadedMemo = savedMemo;
+
       showAppNotice(context, '메모가 수정되었어요.');
     } else {
       showAppNotice(context, '메모 수정에 실패했어요. 다시 시도해 주세요.');
