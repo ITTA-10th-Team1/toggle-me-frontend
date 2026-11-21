@@ -11,7 +11,8 @@ import '../data/models/auth_error_code.dart';
 import '../data/models/login_response.dart';
 import '../data/models/onboarding_step.dart';
 import '../../../app/theme/app_colors.dart';
-import 'widgets/app_text_field.dart';
+import 'widgets/login_style.dart';
+import 'widgets/login_text_field.dart';
 import 'widgets/primary_button.dart';
 import 'widgets/social_login_button.dart';
 
@@ -168,10 +169,10 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildBackButton(),
-                const SizedBox(height: 24),
+                const SizedBox(height: LoginStyle.backToLogo),
                 _buildHeader(),
-                const SizedBox(height: 40),
-                AppTextField(
+                const SizedBox(height: LoginStyle.introToId),
+                LoginTextField(
                   controller: _idController,
                   hintText: '아이디 입력',
                   icon: Icons.person_outline,
@@ -185,8 +186,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                   validator: _validateId,
                 ),
-                const SizedBox(height: 12),
-                AppTextField(
+                const SizedBox(height: LoginStyle.idToPassword),
+                LoginTextField(
                   controller: _passwordController,
                   hintText: '비밀번호 입력',
                   icon: Icons.lock_outline,
@@ -194,18 +195,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   textInputAction: TextInputAction.done,
                   validator: _validatePassword,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: LoginStyle.passwordToFind),
                 _buildOptionsRow(),
-                const SizedBox(height: 20),
+                const SizedBox(height: LoginStyle.findToLogin),
                 PrimaryButton(
                   text: '로그인',
                   isLoading: _isLoading,
                   // null을 넘기면 버튼이 비활성화(회색, 안 눌림)돼요.
                   onPressed: _canLogin ? _onLoginPressed : null,
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: LoginStyle.loginToSns),
                 _buildSocialSection(),
-                const SizedBox(height: 48),
+                const SizedBox(height: LoginStyle.kakaoToSignUp),
                 _buildSignUpRow(),
                 const SizedBox(height: 24),
               ],
@@ -220,8 +221,18 @@ class _LoginScreenState extends State<LoginScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: IconButton(
+        tooltip: '뒤로가기',
         padding: EdgeInsets.zero,
-        alignment: Alignment.centerLeft,
+        // 버튼 크기를 아이콘(36x36)에 딱 맞춰서, 아래 로고까지 여백 45가 정확해요.
+        constraints: const BoxConstraints.tightFor(
+          width: LoginStyle.backIconSize,
+          height: LoginStyle.backIconSize,
+        ),
+        iconSize: LoginStyle.backIconSize,
+        // 눈에 안 보이는 터치 여유 영역(48)을 없애서 실제 크기를 36으로 맞춰요.
+        style: IconButton.styleFrom(
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
         icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
         onPressed: () => context.go(AppRoutes.onboarding),
       ),
@@ -232,24 +243,17 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 피그마 기준 250x50. 이미지 비율이 달라도 찌그러지지 않게 contain 사용.
+        // 피그마 기준 250x49. 이미지 비율이 달라도 찌그러지지 않게 contain 사용.
         Image.asset(
           'assets/images/img_login_logo.png',
-          width: 250,
-          height: 50,
+          width: LoginStyle.logoWidth,
+          height: LoginStyle.logoHeight,
           fit: BoxFit.contain,
           alignment: Alignment.centerLeft,
           semanticLabel: 'Toggle me',
         ),
-        const SizedBox(height: 12),
-        const Text(
-          '취향을 기록하고 발견하는\n공간형 아카이빙 서비스',
-          style: TextStyle(
-            fontSize: 13,
-            height: 1.5,
-            color: AppColors.textSecondary,
-          ),
-        ),
+        const SizedBox(height: LoginStyle.logoToIntro),
+        Text('취향을 기록하고 발견하는\n공간형 아카이빙 서비스', style: LoginStyle.intro),
       ],
     );
   }
@@ -266,14 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text(
-            '아이디·비밀번호 찾기',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
+          child: Text('아이디·비밀번호 찾기', style: LoginStyle.findAccount),
         ),
       ],
     );
@@ -282,13 +279,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildSocialSection() {
     return Column(
       children: [
-        const Center(
-          child: Text(
-            'SNS 간편 로그인',
-            style: TextStyle(fontSize: 12, color: AppColors.textHint),
-          ),
-        ),
-        const SizedBox(height: 16),
+        Center(child: Text('SNS 간편 로그인', style: LoginStyle.sns)),
+        const SizedBox(height: LoginStyle.snsToKakao),
         Wrap(
           alignment: WrapAlignment.center,
           spacing: 16,
@@ -309,10 +301,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            '계정이 없으신가요?',
-            style: TextStyle(fontSize: 12, color: AppColors.textHint),
-          ),
+          Text('계정이 없으신가요?', style: LoginStyle.signUpQuestion),
           TextButton(
             onPressed: () => context.go(AppRoutes.signup),
             style: TextButton.styleFrom(
@@ -320,14 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text(
-              '회원가입',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
+            child: Text('회원가입', style: LoginStyle.signUpLink),
           ),
         ],
       ),

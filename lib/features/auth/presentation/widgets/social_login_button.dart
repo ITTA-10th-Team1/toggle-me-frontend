@@ -19,15 +19,15 @@ class SocialLoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 카카오는 디자인 이미지(배경+아이콘 포함)를 그대로 써요. 피그마 기준 52x52.
+    // 카카오는 디자인 이미지(배경+아이콘 포함)를 그대로 써요. 피그마 기준 54x54 (이슈 #38).
     if (type == SocialType.kakao) {
       return InkWell(
         onTap: onPressed,
         customBorder: const CircleBorder(),
         child: Image.asset(
           'assets/images/img_login_kakao.png',
-          width: 52,
-          height: 52,
+          width: 54,
+          height: 54,
           semanticLabel: '카카오 로그인',
         ),
       );
