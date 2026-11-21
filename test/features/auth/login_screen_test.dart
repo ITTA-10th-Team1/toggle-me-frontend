@@ -144,5 +144,23 @@ void main() {
       await tester.pump();
       expect(obscured(), isTrue);
     });
+
+    testWidgets('로그인 버튼이 켜지면(검정) 글자는 흰색으로 보인다', (tester) async {
+      await _pumpLogin(tester);
+      await tester.enterText(find.byType(TextFormField).at(0), 'test2');
+      await tester.enterText(find.byType(TextFormField).at(1), '12');
+      await tester.pumpAndSettle(); // 버튼 색이 바뀌는 애니메이션이 끝날 때까지
+
+      final button = tester.widget<ElevatedButton>(
+        find.descendant(of: loginButton, matching: find.byType(ElevatedButton)),
+      );
+      expect(button.onPressed, isNotNull); // 켜진 상태
+
+      // 실제로 그려지는 글자 색 (RichText)
+      final label = tester.widget<RichText>(
+        find.descendant(of: loginButton, matching: find.byType(RichText)),
+      );
+      expect(label.text.style!.color, Colors.white);
+    });
   });
 }

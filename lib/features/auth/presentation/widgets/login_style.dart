@@ -80,7 +80,12 @@ abstract final class LoginStyle {
   static final findAccount = _style(14, FontWeight.w500);
 
   /// 로그인 버튼 글자: Medium 18
-  static final loginButton = _style(18, FontWeight.w500);
+  /// 색은 넣지 않아요. 버튼이 켜졌을 때(흰 글자)·꺼졌을 때 색을 버튼이 정해요.
+  static const loginButton = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 18 * -0.025,
+  );
 
   /// 'SNS 간편 로그인': Regular 16, #747474
   static final sns = _style(16, FontWeight.w400, color: grayText);
