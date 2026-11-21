@@ -36,7 +36,7 @@ void main() {
   });
 
   testWidgets(
-    'capsule fits a narrow phone and has no gap between action regions',
+    'capsule fits a narrow phone and keeps fixed gaps between action regions',
     (tester) async {
       tester.view.physicalSize = const Size(320, 700);
       tester.view.devicePixelRatio = 1;
@@ -64,7 +64,7 @@ void main() {
       await tester.pumpAndSettle();
       final record = tester.getRect(find.byType(ElevatedButton));
       final guestbook = tester.getRect(find.byType(IconButton).first);
-      expect(record.right, closeTo(guestbook.left, 0.01));
+      expect(guestbook.left - record.right, closeTo(5, 0.01));
       expect(record.height, 52);
       expect(tester.takeException(), isNull);
     },

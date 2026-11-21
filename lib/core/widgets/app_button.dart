@@ -15,6 +15,7 @@ class AppButton extends StatelessWidget {
     this.height = 53,
     this.isLoading = false,
     this.backgroundColor,
+    this.textStyle,
     this.disabledBackgroundColor,
   });
 
@@ -25,6 +26,7 @@ class AppButton extends StatelessWidget {
   final double height;
   final bool isLoading;
   final Color? backgroundColor;
+  final TextStyle? textStyle;
   final Color? disabledBackgroundColor;
 
   @override
@@ -66,7 +68,7 @@ class AppButton extends StatelessWidget {
             : Text(
                 label,
                 textAlign: TextAlign.center,
-                style: AppTextStyles.button,
+                style: textStyle ?? AppTextStyles.button,
               ),
       ),
     );
