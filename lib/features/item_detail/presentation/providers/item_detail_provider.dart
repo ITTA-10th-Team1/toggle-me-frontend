@@ -20,6 +20,8 @@ class ItemDetailState {
     this.isLoadingRecommendations = false,
     this.recommendationError,
     this.hasLoadedRecommendations = false,
+    this.isUpdatingVisibility = false,
+    this.isUpdatingMemo = false,
   });
 
   final ItemDetailModel? item;
@@ -31,6 +33,8 @@ class ItemDetailState {
   final bool isLoadingRecommendations;
   final String? recommendationError;
   final bool hasLoadedRecommendations;
+  final bool isUpdatingVisibility;
+  final bool isUpdatingMemo;
 
   ItemDetailState copyWith({
     ItemDetailModel? item,
@@ -44,6 +48,8 @@ class ItemDetailState {
     String? recommendationError,
     bool clearRecommendationError = false,
     bool? hasLoadedRecommendations,
+    bool? isUpdatingVisibility,
+    bool? isUpdatingMemo,
   }) {
     return ItemDetailState(
       item: clearItem ? null : item ?? this.item,
@@ -58,6 +64,8 @@ class ItemDetailState {
           : recommendationError ?? this.recommendationError,
       hasLoadedRecommendations:
           hasLoadedRecommendations ?? this.hasLoadedRecommendations,
+      isUpdatingVisibility: isUpdatingVisibility ?? this.isUpdatingVisibility,
+      isUpdatingMemo: isUpdatingMemo ?? this.isUpdatingMemo,
     );
   }
 }
@@ -145,6 +153,85 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
         isLoadingRecommendations: false,
         recommendationError: e.toString(),
       );
+    }
+  }
+
+  /// 아이템 공개 여부를 변경한다.
+  Future<bool> updateVisibility(int itemId, bool isPublic) async {
+    if (state.isUpdatingVisibility ||
+        state.isDeleting ||
+        state.item?.id != itemId) {
+      return false;
+    }
+
+    final requestId = _requestId;
+
+    state = state.copyWith(isUpdatingVisibility: true, clearError: true);
+
+    try {
+      await _ensureAccessToken();
+
+      final updatedItem = await _repository.updateVisibility(
+        itemId,
+        isPublic ? 'PUBLIC' : 'PRIVATE',
+      );
+
+      // 다른 아이템으로 이동했다면 이전 응답 무시
+      if (requestId != _requestId || state.item?.id != itemId) {
+        return false;
+      }
+
+      state = state.copyWith(item: updatedItem, isUpdatingVisibility: false);
+
+      return true;
+    } catch (e) {
+      if (requestId != _requestId || state.item?.id != itemId) {
+        return false;
+      }
+
+      state = state.copyWith(
+        isUpdatingVisibility: false,
+        errorMessage: e.toString(),
+      );
+
+      return false;
+    }
+  }
+
+  /// 아이템 메모를 수정한다.
+  Future<bool> updateMemo(int itemId, String memo) async {
+    if (state.isUpdatingMemo ||
+        state.isUpdatingVisibility ||
+        state.isDeleting ||
+        state.item?.id != itemId) {
+      return false;
+    }
+
+    final requestId = _requestId;
+
+    state = state.copyWith(isUpdatingMemo: true, clearError: true);
+
+    try {
+      await _ensureAccessToken();
+
+      final updatedItem = await _repository.updateMemo(itemId, memo);
+
+      // 다른 아이템으로 이동했다면 이전 응답 무시
+      if (requestId != _requestId || state.item?.id != itemId) {
+        return false;
+      }
+
+      state = state.copyWith(item: updatedItem, isUpdatingMemo: false);
+
+      return true;
+    } catch (e) {
+      if (requestId != _requestId || state.item?.id != itemId) {
+        return false;
+      }
+
+      state = state.copyWith(isUpdatingMemo: false, errorMessage: e.toString());
+
+      return false;
     }
   }
 

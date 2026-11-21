@@ -20,6 +20,14 @@ class ItemDetailScreen extends ConsumerStatefulWidget {
 
 class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   bool _isRecommendationExpanded = false;
+  final TextEditingController _memoController = TextEditingController();
+  String? _lastLoadedMemo;
+
+  @override
+  void dispose() {
+    _memoController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -157,7 +165,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     final item = state.item!;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 8, 10, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -167,7 +175,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           const SizedBox(height: 18),
           _buildTagSection(item.tags),
           const SizedBox(height: 18),
-          _buildVisibilitySection(item.isPublic),
+          _buildVisibilitySection(state),
           const SizedBox(height: 18),
           _buildRecommendationSection(item.furnitureTypeId, item.id, state),
         ],
@@ -218,30 +226,129 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   }
 
   Widget _buildMemoSection(String? memo) {
+    // 서버에서 메모가 새로 로드되거나 수정된 경우에만 입력값 갱신
+    if (_lastLoadedMemo != memo) {
+      _memoController.text = memo ?? '';
+      _lastLoadedMemo = memo;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionTitle('메모'),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 42),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _memoController,
+          maxLines: 1,
+          textInputAction: TextInputAction.done,
+          style: const TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            letterSpacing: -0.4,
+            color: Color(0xFF000000),
           ),
-          child: Text(
-            memo == null || memo.trim().isEmpty ? '작성된 메모가 없어요.' : memo,
-            style: const TextStyle(
-              fontSize: 12,
-              height: 1.4,
-              color: AppColors.textSecondary,
+          decoration: InputDecoration(
+            hintText: '오늘 발견한 취향에 대해 자유롭게 적어보세요',
+            hintStyle: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              letterSpacing: -0.4,
+              color: Color(0xFF545454),
+            ),
+            filled: true,
+            fillColor: AppColors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 17,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
             ),
           ),
+          enabled:
+              !ref.watch(itemDetailProvider).isUpdatingMemo &&
+              !ref.watch(itemDetailProvider).isDeleting,
+          onSubmitted: (_) => _saveMemo(),
         ),
       ],
     );
+  }
+
+  Future<void> _saveMemo() async {
+    final success = await ref
+        .read(itemDetailProvider.notifier)
+        .updateMemo(widget.itemId, _memoController.text);
+
+    if (!mounted) return;
+
+    if (success) {
+      showAppNotice(context, '메모가 수정되었어요.');
+    } else {
+      showAppNotice(context, '메모 수정에 실패했어요. 다시 시도해 주세요.');
+    }
+  }
+
+  Future<void> _showMemoEditor(String? memo) async {
+    if (ref.read(itemDetailProvider).isDeleting) return;
+
+    final controller = TextEditingController(text: memo ?? '');
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            '메모 수정',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: 5,
+            minLines: 3,
+            maxLength: 500,
+            decoration: const InputDecoration(
+              hintText: '메모를 입력해 주세요.',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, controller.text);
+              },
+              child: const Text('저장'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+
+    if (!mounted || result == null) return;
+
+    final success = await ref
+        .read(itemDetailProvider.notifier)
+        .updateMemo(widget.itemId, result);
+
+    if (!mounted) return;
+
+    if (success) {
+      showAppNotice(context, '메모가 수정되었어요.');
+    } else {
+      showAppNotice(context, '메모 수정에 실패했어요. 다시 시도해 주세요.');
+    }
   }
 
   Widget _buildTagSection(List<String> tags) {
@@ -264,14 +371,18 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontFamily: 'Pretendard',
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          height: 20 / 16,
+          letterSpacing: -0.4,
           color: enabled ? const Color(0xFF4B4540) : AppColors.textHint,
         ),
       ),
     );
   }
 
-  Widget _buildVisibilitySection(bool isPublic) {
+  Widget _buildVisibilitySection(ItemDetailState state) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
@@ -288,8 +399,10 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 Text(
                   '취향 공개 여부',
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Pretendard',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.5,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -297,14 +410,33 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                 Text(
                   'On: 친구에게 공개  Off: 나만 보기',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontFamily: 'Pretendard',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    height: 18 / 14,
+                    letterSpacing: -0.35,
                     color: AppColors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
-          RoomModeToggle(isOn: isPublic, onChanged: null),
+          RoomModeToggle(
+            isOn: state.item?.isPublic ?? false,
+            onChanged: state.isUpdatingVisibility || state.isDeleting
+                ? null
+                : (value) async {
+                    final success = await ref
+                        .read(itemDetailProvider.notifier)
+                        .updateVisibility(widget.itemId, value);
+
+                    if (!mounted) return;
+
+                    if (!success) {
+                      showAppNotice(context, '공개 여부 변경에 실패했어요. 다시 시도해 주세요.');
+                    }
+                  },
+          ),
         ],
       ),
     );
@@ -518,8 +650,10 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
+        fontFamily: 'Pretendard',
+        fontSize: 20,
+        fontWeight: FontWeight.w500,
+        letterSpacing: -0.5,
         color: AppColors.textPrimary,
       ),
     );

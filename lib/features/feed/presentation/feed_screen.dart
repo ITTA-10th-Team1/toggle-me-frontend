@@ -113,8 +113,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               Text(
                 value,
                 style: const TextStyle(
+                  fontFamily: 'Pretendard',
                   fontSize: 14,
-                  fontWeight: FontWeight.normal,
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                  letterSpacing: -0.35,
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -153,8 +156,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       child: Text(
                         '취향 모아보기',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Pretendard',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          height: 26 / 20,
+                          letterSpacing: -0.5,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -238,8 +244,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                             Text(
                               feedState.sort.label,
                               style: const TextStyle(
+                                fontFamily: 'Pretendard',
                                 fontSize: 14,
-                                fontWeight: FontWeight.normal,
+                                fontWeight: FontWeight.w400,
+                                height: 1,
+                                letterSpacing: -0.35,
                                 color: AppColors.textPrimary,
                               ),
                             ),
@@ -310,7 +319,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     return GridView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         crossAxisSpacing: 5,
