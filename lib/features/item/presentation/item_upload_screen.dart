@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:toggle_me/app/theme/app_colors.dart';
 
@@ -236,17 +237,17 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
               _buildHeader(uploadState),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(10, 8, 20, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildCategorySection(uploadState),
+                      const SizedBox(height: 16),
                       _buildImageArea(uploadState),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 16),
                       _buildMemoSection(uploadState),
                       const SizedBox(height: 28),
                       _buildTagSection(uploadState),
-                      const SizedBox(height: 22),
-                      _buildCategorySection(uploadState),
                       const SizedBox(height: 22),
                       _buildVisibilitySection(uploadState),
                       const SizedBox(height: 12),
@@ -264,16 +265,18 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 
   Widget _buildHeader(ItemUploadState state) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
       child: Row(
         children: [
           const Expanded(
             child: Text(
               '어떤 취향을 기록할까요?',
-              style: const TextStyle(
-                fontSize: 20,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 22,
                 fontWeight: FontWeight.w600,
-                letterSpacing: -0.5,
+                height: 26 / 22,
+                letterSpacing: -0.55,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -335,10 +338,11 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
         Text(
           '사진을 올려주세요',
           style: TextStyle(
+            fontFamily: 'Pretendard',
             color: AppColors.textSecondary,
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: FontWeight.w400,
-            letterSpacing: -0.45,
+            letterSpacing: -0.4,
           ),
         ),
       ],
@@ -409,70 +413,6 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     );
   }
 
-  Widget _buildTagSection(ItemUploadState state) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionTitle('AI가 추천하는 태그'),
-        const SizedBox(height: 10),
-        if (state.selectedImage == null)
-          _tagMessage('사진을 선택하면 AI가 태그를 추천해요.')
-        else if (state.isUploading)
-          _tagMessage('사진 업로드가 완료되면 분석을 시작해요.')
-        else if (state.isGeneratingTags)
-          const Row(
-            children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primary,
-                ),
-              ),
-              SizedBox(width: 8),
-              Text('AI가 사진을 분석하고 있어요.'),
-            ],
-          )
-        else if (state.recommendedTags.isEmpty)
-          _tagMessage('추천 태그가 없어요. 사진은 그대로 기록할 수 있어요.')
-        else
-          Wrap(
-            spacing: 7,
-            runSpacing: 7,
-            children: state.recommendedTags.map((tag) {
-              final selected = state.selectedTags.contains(tag);
-
-              return FilterChip(
-                label: Text('#$tag'),
-                selected: selected,
-                showCheckmark: false,
-                selectedColor: AppColors.uploadBackground,
-                backgroundColor: AppColors.chipBackground,
-                side: BorderSide.none,
-                labelStyle: TextStyle(
-                  fontSize: 12,
-                  color: selected ? AppColors.primary : AppColors.textSecondary,
-                ),
-                onSelected: state.isSubmitting
-                    ? null
-                    : (_) {
-                        ref.read(itemUploadProvider.notifier).toggleTag(tag);
-                      },
-              );
-            }).toList(),
-          ),
-      ],
-    );
-  }
-
-  Widget _tagMessage(String message) {
-    return Text(
-      message,
-      style: const TextStyle(fontSize: 12, color: AppColors.textHint),
-    );
-  }
-
   Widget _buildCategorySection(ItemUploadState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -527,8 +467,10 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                       Text(
                         category.name,
                         style: const TextStyle(
-                          fontSize: 12,
-                          letterSpacing: -0.45,
+                          fontFamily: 'Pretendard',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: -0.4,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -565,9 +507,22 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
         TextField(
           controller: _memoController,
           maxLines: 1,
+          style: const TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            letterSpacing: -0.4,
+            color: Color(0xFF000000),
+          ),
           decoration: InputDecoration(
             hintText: '오늘 발견한 취향에 대해 자유롭게 적어보세요',
-            hintStyle: const TextStyle(fontSize: 11, color: AppColors.textHint),
+            hintStyle: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              letterSpacing: -0.4,
+              color: Color(0xFF545454),
+            ),
             filled: true,
             fillColor: AppColors.white,
             contentPadding: const EdgeInsets.symmetric(
@@ -582,6 +537,82 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
           enabled: !state.isSubmitting,
         ),
       ],
+    );
+  }
+
+  Widget _buildTagSection(ItemUploadState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('AI가 추천하는 태그'),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          children: state.recommendedTags.isEmpty
+              ? List.generate(
+                  3,
+                  (_) => FilterChip(
+                    label: const Text('#'),
+                    selected: false,
+                    showCheckmark: false,
+                    onSelected: null,
+                    backgroundColor: AppColors.darkIvory,
+                    selectedColor: AppColors.uploadBackground,
+                    shape: const StadiumBorder(),
+                    side: BorderSide.none,
+                    labelStyle: const TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      height: 20 / 16,
+                      letterSpacing: -0.4,
+                      color: Color(0xFF4B4540),
+                    ),
+                  ),
+                )
+              : state.recommendedTags.map((tag) {
+                  final selected = state.selectedTags.contains(tag);
+
+                  return FilterChip(
+                    label: Text(tag),
+                    selected: selected,
+                    showCheckmark: false,
+                    backgroundColor: AppColors.darkIvory,
+                    selectedColor: AppColors.uploadBackground,
+                    shape: const StadiumBorder(),
+                    side: BorderSide(
+                      color: selected
+                          ? AppColors.roomAccent
+                          : Colors.transparent,
+                      width: 1,
+                    ),
+                    labelStyle: const TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      height: 20 / 16,
+                      letterSpacing: -0.4,
+                      color: Color(0xFF4B4540),
+                    ),
+                    onSelected: state.isSubmitting
+                        ? null
+                        : (_) {
+                            ref
+                                .read(itemUploadProvider.notifier)
+                                .toggleTag(tag);
+                          },
+                  );
+                }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _tagMessage(String message) {
+    return Text(
+      message,
+      style: const TextStyle(fontSize: 12, color: AppColors.textHint),
     );
   }
 
@@ -601,8 +632,10 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                 Text(
                   '취향 공개 여부',
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Pretendard',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.5,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -610,7 +643,11 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                 Text(
                   'On: 친구에게 공개   Off: 나만 보기',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontFamily: 'Pretendard',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    height: 18 / 14,
+                    letterSpacing: -0.35,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -635,7 +672,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
   Widget _buildBottomButtons(ItemUploadState state) {
     return Container(
       color: AppColors.background,
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
       child: Row(
         children: [
           Expanded(
@@ -651,7 +688,16 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text('취소하기', style: TextStyle(fontSize: 13)),
+                child: const Text(
+                  '취소하기',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    height: 19.78 / 18,
+                    letterSpacing: -0.45,
+                  ),
+                ),
               ),
             ),
           ),
@@ -684,8 +730,11 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                     : const Text(
                         '기록하기',
                         style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Pretendard',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          height: 19.78 / 18,
+                          letterSpacing: -0.45,
                           color: AppColors.black,
                         ),
                       ),
@@ -701,8 +750,10 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
+        fontFamily: 'Pretendard',
+        fontSize: 20,
+        fontWeight: FontWeight.w500,
+        letterSpacing: -0.5,
         color: AppColors.textPrimary,
       ),
     );

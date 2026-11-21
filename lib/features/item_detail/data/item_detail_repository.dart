@@ -68,4 +68,30 @@ class ItemDetailRepository {
       rethrow;
     }
   }
+
+  Future<ItemDetailModel> updateVisibility(
+    int itemId,
+    String visibility,
+  ) async {
+    final response = await _apiClient.dio.patch(
+      '/api/v1/items/$itemId',
+      data: {'visibility': visibility},
+    );
+
+    return ItemDetailModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  /// 아이템 메모를 수정한다.
+  Future<ItemDetailModel> updateMemo(int itemId, String memo) async {
+    final response = await _apiClient.dio.patch(
+      '/api/v1/items/$itemId',
+      data: {'memo': memo},
+    );
+
+    return ItemDetailModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
 }

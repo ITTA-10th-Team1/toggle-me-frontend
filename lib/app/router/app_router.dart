@@ -12,13 +12,12 @@ import '../../features/room/presentation/room_screen.dart';
 import '../../features/room/presentation/room_presentation_config.dart';
 import '../../features/social/presentation/friend_list_screen.dart';
 import '../../features/social/presentation/widgets/share_taste_dialog.dart';
-import '../../features/pinboard/presentation/pinboard_screen.dart';
+//import '../../features/pinboard/presentation/pinboard_screen.dart'; 임시 핀보드 연결 끊기
 import '../../features/feed/presentation/feed_screen.dart';
 import '../../features/item_detail/presentation/item_detail_screen.dart';
 import 'app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
-  // Keep normal startup; presentation may opt in with ROOM_DEMO_ENTRY.
   initialLocation: const bool.fromEnvironment('ROOM_DEMO_ENTRY')
       ? AppRoutes.room
       : AppRoutes.onboarding,
@@ -52,12 +51,17 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.room,
       builder: (context, state) => RoomScreen(
         moodHashtags: RoomPresentationConfig.moodHashtags,
+        /*핀보드 연결 끊기(임시)
         onFurnitureTap: (category) => context.push(
           Uri(
             path: AppRoutes.pinboard,
             queryParameters: {'category': category},
           ).toString(),
         ),
+        */
+        onFurnitureTap: (category) {
+          context.push(AppRoutes.items);
+        },
         onProfile: () => context.push(AppRoutes.mypage),
         onLogout: () => context.go(AppRoutes.login),
         onNotifications: () => context.push(AppRoutes.notifications),
@@ -98,11 +102,12 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
+    /*핀보드 연결 끊기(임시)
     GoRoute(
       path: AppRoutes.pinboard,
       builder: (context, state) => const PinboardScreen(),
     ),
-
+    */
     GoRoute(
       path: AppRoutes.guestbook,
       builder: (context, state) =>

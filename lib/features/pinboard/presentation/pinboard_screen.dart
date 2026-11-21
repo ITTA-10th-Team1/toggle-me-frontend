@@ -14,7 +14,6 @@ class PinboardScreen extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 핀보드 배경
           Image.asset(
             'assets/images/img_pinboard_background.png',
             fit: BoxFit.cover,
@@ -23,15 +22,14 @@ class PinboardScreen extends StatelessWidget {
           SafeArea(
             child: Stack(
               children: [
-                // 뒤로가기 버튼
                 Positioned(
                   top: 12,
-                  left: 16,
+                  left: 10,
                   child: GestureDetector(
                     onTap: () => context.pop(),
                     child: Container(
-                      width: 44,
-                      height: 44,
+                      width: 46,
+                      height: 46,
                       decoration: const BoxDecoration(
                         color: AppColors.iconButtonBackground,
                         shape: BoxShape.circle,
@@ -49,11 +47,11 @@ class PinboardScreen extends StatelessWidget {
 
                 // 핀보드 꾸미기 버튼
                 Positioned(
-                  top: 12,
-                  right: 16,
+                  top: 64,
+                  right: 10,
                   child: Container(
-                    width: 44,
-                    height: 44,
+                    width: 46,
+                    height: 46,
                     decoration: const BoxDecoration(
                       color: AppColors.iconButtonBackground,
                       shape: BoxShape.circle,
@@ -70,13 +68,13 @@ class PinboardScreen extends StatelessWidget {
 
                 // 피드 목록 이동 버튼
                 Positioned(
-                  top: 64,
-                  right: 16,
+                  top: 12,
+                  right: 10,
                   child: GestureDetector(
                     onTap: () => context.push(AppRoutes.items),
                     child: Container(
-                      width: 44,
-                      height: 44,
+                      width: 46,
+                      height: 46,
                       decoration: const BoxDecoration(
                         color: AppColors.iconButtonBackground,
                         shape: BoxShape.circle,
