@@ -22,6 +22,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   bool _isRecommendationExpanded = false;
   final TextEditingController _memoController = TextEditingController();
   String? _lastLoadedMemo;
+  bool _allowPop = false;
+
+  bool get _hasUnsavedMemo => _memoController.text != (_lastLoadedMemo ?? '');
 
   @override
   void dispose() {
@@ -79,12 +82,73 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     }
   }
 
+  Future<void> _handleExit() async {
+    final state = ref.read(itemDetailProvider);
+
+    if (state.isDeleting) return;
+
+    if (state.isUpdatingMemo || state.isUpdatingVisibility) {
+      showAppNotice(context, '작업이 완료된 후 이동해 주세요.');
+      return;
+    }
+
+    if (!_hasUnsavedMemo) {
+      context.pop();
+      return;
+    }
+
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.background,
+        title: const Text('저장하지 않은 메모가 있어요.'),
+        content: const Text('변경한 메모를 저장하지 않고 나가시겠어요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text(
+              '취소',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              '나가기',
+              style: TextStyle(color: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldExit != true || !mounted) return;
+
+    setState(() {
+      _allowPop = true;
+    });
+
+    await Future<void>.delayed(Duration.zero);
+
+    if (mounted) {
+      context.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(itemDetailProvider);
 
     return PopScope(
-      canPop: !state.isDeleting,
+      canPop:
+          !state.isDeleting &&
+          !state.isUpdatingMemo &&
+          !state.isUpdatingVisibility &&
+          (!_hasUnsavedMemo || _allowPop),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleExit();
+      },
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
@@ -115,7 +179,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
             shape: const CircleBorder(),
             child: InkWell(
               customBorder: const CircleBorder(),
-              onTap: isDeleting ? null : () => context.pop(),
+              onTap: isDeleting ? null : _handleExit,
               child: SizedBox(
                 width: 32,
                 height: 32,
@@ -270,7 +334,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           ),
           enabled:
               !ref.watch(itemDetailProvider).isUpdatingMemo &&
+              !ref.watch(itemDetailProvider).isUpdatingVisibility &&
               !ref.watch(itemDetailProvider).isDeleting,
+          onChanged: (_) {
+            setState(() {});
+          },
           onSubmitted: (_) => _saveMemo(),
         ),
       ],
@@ -278,6 +346,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   }
 
   Future<void> _saveMemo() async {
+    if (!_hasUnsavedMemo) return;
+
     final success = await ref
         .read(itemDetailProvider.notifier)
         .updateMemo(widget.itemId, _memoController.text);
@@ -285,70 +355,13 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     if (!mounted) return;
 
     if (success) {
+      _lastLoadedMemo = ref.read(itemDetailProvider).item?.memo;
       showAppNotice(context, '메모가 수정되었어요.');
     } else {
       showAppNotice(context, '메모 수정에 실패했어요. 다시 시도해 주세요.');
     }
-  }
 
-  Future<void> _showMemoEditor(String? memo) async {
-    if (ref.read(itemDetailProvider).isDeleting) return;
-
-    final controller = TextEditingController(text: memo ?? '');
-
-    final result = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text(
-            '메모 수정',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLines: 5,
-            minLines: 3,
-            maxLength: 500,
-            decoration: const InputDecoration(
-              hintText: '메모를 입력해 주세요.',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('취소'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, controller.text);
-              },
-              child: const Text('저장'),
-            ),
-          ],
-        );
-      },
-    );
-
-    controller.dispose();
-
-    if (!mounted || result == null) return;
-
-    final success = await ref
-        .read(itemDetailProvider.notifier)
-        .updateMemo(widget.itemId, result);
-
-    if (!mounted) return;
-
-    if (success) {
-      showAppNotice(context, '메모가 수정되었어요.');
-    } else {
-      showAppNotice(context, '메모 수정에 실패했어요. 다시 시도해 주세요.');
-    }
+    setState(() {});
   }
 
   Widget _buildTagSection(List<String> tags) {
@@ -423,7 +436,10 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           ),
           RoomModeToggle(
             isOn: state.item?.isPublic ?? false,
-            onChanged: state.isUpdatingVisibility || state.isDeleting
+            onChanged:
+                state.isUpdatingVisibility ||
+                    state.isUpdatingMemo ||
+                    state.isDeleting
                 ? null
                 : (value) async {
                     final success = await ref

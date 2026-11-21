@@ -159,6 +159,7 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
   /// 아이템 공개 여부를 변경한다.
   Future<bool> updateVisibility(int itemId, bool isPublic) async {
     if (state.isUpdatingVisibility ||
+        state.isUpdatingMemo ||
         state.isDeleting ||
         state.item?.id != itemId) {
       return false;
