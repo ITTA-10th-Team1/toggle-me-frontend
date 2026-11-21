@@ -76,7 +76,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                             _buildDescription(),
 
-                            const SizedBox(height: 32),
+                            const SizedBox(height: 42),
 
                             _buildButtons(),
 
@@ -170,8 +170,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           '취향을 모으는 가장 나다운 방법',
           style: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 23,
-            fontWeight: FontWeight.w800,
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
             letterSpacing: -1.0,
           ),
         ),
@@ -183,8 +183,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           '나만의 방에 하나씩 기록해두세요',
           style: TextStyle(
             color: AppColors.onboardingTextSecondary,
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
             height: 1.45,
             letterSpacing: -0.3,
           ),
@@ -200,6 +200,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           label: '비회원으로 시작하기',
           variant: AppButtonVariant.guest,
           width: double.infinity,
+          height: 53,
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
           onPressed: _goToGuestIntro,
         ),
 
@@ -209,6 +211,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           label: '로그인',
           variant: AppButtonVariant.login,
           width: double.infinity,
+          height: 53,
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
           onPressed: _goToLogin,
         ),
       ],

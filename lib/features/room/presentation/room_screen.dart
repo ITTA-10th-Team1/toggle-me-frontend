@@ -21,6 +21,7 @@ class RoomScreen extends StatefulWidget {
   const RoomScreen({
     super.key,
     this.onProfile,
+    this.onLogout,
     this.onNotifications,
     this.onRecord,
     this.onGuestbook,
@@ -35,6 +36,7 @@ class RoomScreen extends StatefulWidget {
   });
 
   final VoidCallback? onProfile;
+  final VoidCallback? onLogout;
   final VoidCallback? onNotifications;
   final VoidCallback? onRecord;
   final VoidCallback? onGuestbook;
@@ -225,22 +227,44 @@ class _RoomScreenState extends State<RoomScreen> {
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
                     child: Row(
                       children: [
                         IconButton(
                           tooltip: '마이페이지',
+                          style: IconButton.styleFrom(
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           onPressed: widget.onProfile,
                           icon: _svg('profile', width: 46, height: 46),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
                             minWidth: 46,
+                            maxWidth: 46,
                             minHeight: 46,
+                            maxHeight: 46,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
+                        IconButton(
+                          tooltip: '로그아웃',
+                          onPressed: widget.onLogout,
+                          icon: _svg('logout', width: 46, height: 46),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 46,
+                            height: 46,
+                          ),
+                          style: IconButton.styleFrom(
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
                         IconButton(
                           tooltip: '알림',
+                          style: IconButton.styleFrom(
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           onPressed: widget.onNotifications,
                           icon: _svg(
                             _hasNewNotifications
@@ -252,7 +276,9 @@ class _RoomScreenState extends State<RoomScreen> {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
                             minWidth: 46,
+                            maxWidth: 46,
                             minHeight: 46,
+                            maxHeight: 46,
                           ),
                         ),
                         const Spacer(),
@@ -264,7 +290,7 @@ class _RoomScreenState extends State<RoomScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 22),
                   RoomMoodHashtags(tags: widget.moodHashtags),
                   Expanded(
                     child: Padding(
@@ -356,15 +382,15 @@ class _RoomScreenState extends State<RoomScreen> {
                     ),
                   ),
                   SizedBox(
-                    height: 112,
+                    height: 98,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 8,
+                        vertical: 4,
                       ),
                       itemCount: _categories.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => const SizedBox(width: 5),
                       itemBuilder: (context, index) {
                         final category = _categories[index];
                         return InkWell(
@@ -376,6 +402,9 @@ class _RoomScreenState extends State<RoomScreen> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(15),
                               border: Border.all(color: _ivory),
+                              boxShadow: const [
+                                BoxShadow(color: _ivory, blurRadius: 4),
+                              ],
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -427,6 +456,7 @@ class _RoomScreenState extends State<RoomScreen> {
                                           ),
                                         ),
                                 ),
+                                const SizedBox(height: 5),
                                 Text(
                                   category.$1,
                                   style: const TextStyle(fontSize: 12),
@@ -439,7 +469,7 @@ class _RoomScreenState extends State<RoomScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
                     child: RoomBottomBar(
                       onRecord: widget.onRecord,
                       onGuestbook: widget.onGuestbook,

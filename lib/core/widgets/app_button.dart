@@ -15,6 +15,7 @@ class AppButton extends StatelessWidget {
     this.height = 53,
     this.isLoading = false,
     this.backgroundColor,
+    this.textStyle,
     this.disabledBackgroundColor,
   });
 
@@ -25,6 +26,7 @@ class AppButton extends StatelessWidget {
   final double height;
   final bool isLoading;
   final Color? backgroundColor;
+  final TextStyle? textStyle;
   final Color? disabledBackgroundColor;
 
   @override
@@ -49,7 +51,7 @@ class AppButton extends StatelessWidget {
               disabledBackgroundColor ?? AppColors.disabled,
           elevation: 0,
           shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(62),
           ),
@@ -66,7 +68,7 @@ class AppButton extends StatelessWidget {
             : Text(
                 label,
                 textAlign: TextAlign.center,
-                style: AppTextStyles.button,
+                style: textStyle ?? AppTextStyles.button,
               ),
       ),
     );
