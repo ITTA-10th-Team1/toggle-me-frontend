@@ -83,6 +83,12 @@ class FeedNotifier extends Notifier<FeedState> {
   // 가장 최근에 시작한 요청을 구분하기 위한 번호
   int _requestId = 0;
 
+  // 현재 선택된 가구 ID
+  int? _furnitureTypeId;
+
+  // 서버 원본 목록의 마지막 ID
+  int? _nextCursor;
+
   @override
   FeedState build() {
     _repository = ref.read(feedRepositoryProvider);
@@ -102,10 +108,15 @@ class FeedNotifier extends Notifier<FeedState> {
   }
 
   /// 최초 조회 및 새로고침
-  Future<void> fetchInitial() async {
-    // 새 요청 번호 발급
+  Future<void> fetchInitial({int? furnitureTypeId}) async {
+    if (furnitureTypeId != null) {
+      _furnitureTypeId = furnitureTypeId;
+    }
+
     final requestId = ++_requestId;
     final currentSort = state.sort;
+
+    _nextCursor = null;
 
     state = state.copyWith(
       items: [],
@@ -118,15 +129,22 @@ class FeedNotifier extends Notifier<FeedState> {
     try {
       await _ensureAccessToken();
 
-      final items = await _repository.getAllItems(sort: currentSort.apiValue);
+      final allItems = await _repository.getAllItems(
+        sort: currentSort.apiValue,
+      );
 
-      // 더 최신 요청이 시작됐다면 이전 응답 무시
       if (requestId != _requestId) return;
 
+      _nextCursor = allItems.isEmpty ? null : allItems.last.id;
+
+      final filteredItems = allItems
+          .where((item) => item.furnitureTypeId == _furnitureTypeId)
+          .toList();
+
       state = state.copyWith(
-        items: items,
+        items: filteredItems,
         isLoading: false,
-        hasMore: items.isNotEmpty,
+        hasMore: allItems.length == 20,
         clearError: true,
       );
     } catch (e) {
@@ -150,15 +168,17 @@ class FeedNotifier extends Notifier<FeedState> {
     final requestId = _requestId;
     final currentSort = state.sort;
 
-    // 현재 목록의 마지막 아이템 ID를 cursor로 사용
-    final cursor = state.items.last.id;
+    // 서버 원본 목록의 마지막 ID를 cursor로 사용
+    final cursor = _nextCursor;
+
+    if (cursor == null) return;
 
     state = state.copyWith(isLoadingMore: true);
 
     try {
       await _ensureAccessToken();
 
-      final newItems = await _repository.getAllItems(
+      final allItems = await _repository.getAllItems(
         sort: currentSort.apiValue,
         cursor: cursor,
       );
@@ -166,15 +186,23 @@ class FeedNotifier extends Notifier<FeedState> {
       // 정렬 변경 등으로 이전 요청이 무효화됐다면 응답 무시
       if (requestId != _requestId) return;
 
-      if (newItems.isEmpty) {
+      if (allItems.isEmpty) {
         state = state.copyWith(isLoadingMore: false, hasMore: false);
         return;
       }
 
+      // 서버 원본 목록 기준으로 cursor 갱신
+      _nextCursor = allItems.last.id;
+
+      // 선택한 가구의 기록만 필터링
+      final filteredItems = allItems
+          .where((item) => item.furnitureTypeId == _furnitureTypeId)
+          .toList();
+
       state = state.copyWith(
-        items: [...state.items, ...newItems],
+        items: [...state.items, ...filteredItems],
         isLoadingMore: false,
-        hasMore: true,
+        hasMore: allItems.length == 20,
       );
     } catch (e) {
       if (requestId != _requestId) return;

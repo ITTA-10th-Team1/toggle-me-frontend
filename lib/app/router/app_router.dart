@@ -60,7 +60,20 @@ final GoRouter appRouter = GoRouter(
         ),
         */
         onFurnitureTap: (category) {
-          context.push(AppRoutes.items);
+          final furnitureTypeId = category == 'mirror'
+              ? 1
+              : category == 'fridge'
+              ? 2
+              : null;
+
+          if (furnitureTypeId == null) return;
+
+          context.push(
+            Uri(
+              path: AppRoutes.items,
+              queryParameters: {'furnitureTypeId': furnitureTypeId.toString()},
+            ).toString(),
+          );
         },
         onProfile: () => context.push(AppRoutes.mypage),
         onLogout: () => context.go(AppRoutes.login),
@@ -85,7 +98,13 @@ final GoRouter appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.items,
-      builder: (context, state) => const FeedScreen(),
+      builder: (context, state) {
+        final furnitureTypeId = int.parse(
+          state.uri.queryParameters['furnitureTypeId']!,
+        );
+
+        return FeedScreen(furnitureTypeId: furnitureTypeId);
+      },
     ),
 
     GoRoute(
