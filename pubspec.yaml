@@ -73,6 +73,7 @@ flutter:
     - assets/room/icons/
     - assets/models/
     - assets/images/
+    - assets/guide/
 
   fonts:
     - family: Pretendard

@@ -5,16 +5,25 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../app/theme/app_gradients.dart';
 import '../data/room_onboarding_draft.dart';
 import '../../room/domain/room_visibility.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/room_mode_toggle.dart';
+import '../../../core/network/member_api.dart';
+import '../../../core/widgets/app_notice.dart';
+import '../../room/data/room_repository.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key, this.roomDraft});
+  const OnboardingScreen({
+    super.key,
+    this.roomDraft,
+    this.resumeSession = false,
+  });
 
   final RoomOnboardingDraft? roomDraft;
+  final bool resumeSession;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -28,6 +37,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void initState() {
     super.initState();
     _isOn = _draft.visibility.isPublic;
+    if (widget.resumeSession) _resume();
+  }
+
+  Future<void> _resume() async {
+    try {
+      await _draft.restore();
+      if (!mounted) return;
+      setState(() => _isOn = _draft.visibility.isPublic);
+      if (!await memberApi.hasSession) return;
+      final me = await RoomRepository(memberApi).me();
+      if (!mounted ||
+          GoRouter.of(context).routeInformationProvider.value.uri.path !=
+              AppRoutes.onboarding) {
+        return;
+      }
+      context.go(
+        me['onboardingStep'] == 'DONE' ? AppRoutes.room : AppRoutes.memberSetup,
+      );
+    } catch (_) {
+      // Offline sessions can retry through login; never erase stored room data.
+    }
   }
 
   void _changeRoomMode(bool value) {
@@ -39,8 +69,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
-  void _goToLogin() {
-    context.go(AppRoutes.login);
+  Future<void> _goToLogin() async {
+    try {
+      await _draft.persist();
+      if (mounted) context.go(AppRoutes.login);
+    } catch (_) {
+      if (mounted) showAppNotice(context, '���� ������ �������� ���߾��. �ٽ� �õ��� �ּ���.');
+    }
   }
 
   void _goToGuestIntro() {
@@ -163,30 +198,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildDescription() {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '취향을 모으는 가장 나다운 방법',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -1.0,
-          ),
+          '������ ������ ���� ���ٿ� ���',
+          style: AppTextStyles.head1.copyWith(color: AppColors.textPrimary),
         ),
 
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
 
         Text(
-          '점점 잊혀가는 나의 취향을\n'
-          '나만의 방에 하나씩 기록해두세요',
-          style: TextStyle(
+          '���� �������� ���� ������\n'
+          '������ �濡 �ϳ��� ����صμ���',
+          style: AppTextStyles.body2.copyWith(
             color: AppColors.onboardingTextSecondary,
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            height: 1.45,
-            letterSpacing: -0.3,
           ),
         ),
       ],
@@ -197,22 +223,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Column(
       children: [
         AppButton(
-          label: '비회원으로 시작하기',
+          label: '��ȸ������ �����ϱ�',
           variant: AppButtonVariant.guest,
           width: double.infinity,
           height: 53,
-          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
+          textStyle: AppTextStyles.head3.copyWith(fontWeight: FontWeight.w400),
           onPressed: _goToGuestIntro,
         ),
 
         const SizedBox(height: 8),
 
         AppButton(
-          label: '로그인',
+          label: '�α���',
           variant: AppButtonVariant.login,
           width: double.infinity,
           height: 53,
-          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
+          textStyle: AppTextStyles.head3.copyWith(fontWeight: FontWeight.w400),
           onPressed: _goToLogin,
         ),
       ],

@@ -7,7 +7,8 @@ import '../../../app/theme/app_colors.dart';
 import 'providers/feed_provider.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
-  const FeedScreen({super.key});
+  const FeedScreen({super.key, this.furnitureTypeId});
+  final int? furnitureTypeId;
 
   @override
   ConsumerState<FeedScreen> createState() => _FeedScreenState();
@@ -23,7 +24,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     _scrollController.addListener(_onScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await ref.read(feedProvider.notifier).fetchInitial();
+      if (!mounted) return;
+      await ref
+          .read(feedProvider.notifier)
+          .fetchInitial(
+            furnitureTypeId: widget.furnitureTypeId,
+            changeCategory: true,
+          );
 
       if (mounted) {
         _loadMoreIfNeeded();
@@ -38,7 +45,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     super.dispose();
   }
 
-  // 스크롤이 하단에 가까워지면 다음 페이지 조회
+  // ��ũ���� �ϴܿ� ��������� ���� ������ ��ȸ
   void _onScroll() {
     if (!_scrollController.hasClients) return;
 
@@ -55,28 +62,28 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     if (mounted) {
       final state = ref.read(feedProvider);
 
-      // 추가 조회에 실패했다면 자동으로 다음 페이지를 요청하지 않음
+      // �߰� ��ȸ�� �����ߴٸ� �ڵ����� ���� �������� ��û���� ����
       if (state.errorMessage != null) return;
 
       _loadMoreIfNeeded();
     }
   }
 
-  // 추가 조회 실패 후 버튼을 눌렀을 때만 재시도
+  // �߰� ��ȸ ���� �� ��ư�� ������ ���� ��õ�
   Future<void> _retryLoadMore() async {
     await ref.read(feedProvider.notifier).retryLoadMore();
 
     if (mounted) {
       final state = ref.read(feedProvider);
 
-      // 재시도도 실패했다면 자동 추가 조회 중단
+      // ��õ��� �����ߴٸ� �ڵ� �߰� ��ȸ �ߴ�
       if (state.errorMessage != null) return;
 
       _loadMoreIfNeeded();
     }
   }
 
-  // 화면에 스크롤이 생기지 않을 정도로 데이터가 적으면 추가 조회
+  // ȭ�鿡 ��ũ���� ������ ���� ������ �����Ͱ� ������ �߰� ��ȸ
   void _loadMoreIfNeeded() {
     if (!_scrollController.hasClients) return;
 
@@ -93,7 +100,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
   }
 
-  // 정렬 메뉴 항목
+  // ���� �޴� �׸�
   PopupMenuItem<String> _buildSortMenuItem(
     String value,
     FeedSort selectedSort,
@@ -144,7 +151,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 상단 헤더
+            // ��� ���
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: SizedBox(
@@ -154,7 +161,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   children: [
                     const Center(
                       child: Text(
-                        '취향 모아보기',
+                        '���� ��ƺ���',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 20,
@@ -166,7 +173,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       ),
                     ),
 
-                    // 뒤로가기 버튼
+                    // �ڷΰ��� ��ư
                     Positioned(
                       left: 16,
                       child: GestureDetector(
@@ -193,7 +200,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               ),
             ),
 
-            // 정렬 버튼
+            // ���� ��ư
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -222,15 +229,15 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       onSelected: (value) {
-                        final sort = value == '최신순'
+                        final sort = value == '�ֽż�'
                             ? FeedSort.latest
                             : FeedSort.oldest;
 
                         ref.read(feedProvider.notifier).changeSort(sort);
                       },
                       itemBuilder: (context) => [
-                        _buildSortMenuItem('최신순', feedState.sort),
-                        _buildSortMenuItem('오래된순', feedState.sort),
+                        _buildSortMenuItem('�ֽż�', feedState.sort),
+                        _buildSortMenuItem('�����ȼ�', feedState.sort),
                       ],
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -267,7 +274,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               ),
             ),
 
-            // 아이템 목록
+            // ������ ���
             Expanded(child: _buildFeedContent(feedState)),
           ],
         ),
@@ -276,21 +283,21 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   Widget _buildFeedContent(FeedState state) {
-    // 최초 로딩
+    // ���� �ε�
     if (state.isLoading && state.items.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
-    // 최초 조회 실패
+    // ���� ��ȸ ����
     if (state.errorMessage != null && state.items.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              '기록을 불러오지 못했어요.',
+              '����� �ҷ����� ���߾��.',
               style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 12),
@@ -298,24 +305,24 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               onPressed: () {
                 ref.read(feedProvider.notifier).fetchInitial();
               },
-              child: const Text('다시 시도'),
+              child: const Text('�ٽ� �õ�'),
             ),
           ],
         ),
       );
     }
 
-    // 등록된 아이템이 없는 경우
+    // ��ϵ� �������� ���� ���
     if (state.items.isEmpty) {
       return const Center(
         child: Text(
-          '아직 등록된 아이템이 없어요.',
+          '���� ��ϵ� �������� �����.',
           style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
       );
     }
 
-    // 아이템 이미지 그리드
+    // ������ �̹��� �׸���
     return GridView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
@@ -330,7 +337,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           state.items.length +
           (state.isLoadingMore || state.errorMessage != null ? 1 : 0),
       itemBuilder: (context, index) {
-        // 하단 로딩 / 추가 조회 실패
+        // �ϴ� �ε� / �߰� ��ȸ ����
         if (index >= state.items.length) {
           if (state.isLoadingMore) {
             return const Center(
@@ -344,7 +351,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           return Center(
             child: TextButton(
               onPressed: _retryLoadMore,
-              child: const Text('다시 시도'),
+              child: const Text('�ٽ� �õ�'),
             ),
           );
         }
