@@ -117,7 +117,7 @@ class _MemberRoomScreenState extends State<MemberRoomScreen> {
     try {
       await repo.api.logout();
     } catch (_) {
-      if (mounted) showAppNotice(context, '��⿡���� �α׾ƿ��߾��. ���� ������ Ȯ������ ���߾��.');
+      if (mounted) showAppNotice(context, '기기에서는 로그아웃했어요. 서버 연결은 확인하지 못했어요.');
     }
     if (mounted) context.go(AppRoutes.login);
   }
@@ -146,10 +146,10 @@ class _MemberRoomScreenState extends State<MemberRoomScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(error!, textAlign: TextAlign.center),
-              TextButton(onPressed: load, child: const Text('�ٽ� �õ�')),
+              TextButton(onPressed: load, child: const Text('다시 시도')),
               TextButton(
                 onPressed: () => context.go(AppRoutes.login),
-                child: const Text('�α����ϱ�'),
+                child: const Text('로그인하기'),
               ),
             ],
           ),

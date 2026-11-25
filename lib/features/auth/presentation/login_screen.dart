@@ -27,8 +27,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // ACC-01: MVP������ īī���� �������.
-  // ���̹������� ��ư �ڵ�� �״�� �־, MVP ���� �� ��Ͽ� �߰��ϸ� �ٽ� ������.
+  // ACC-01: MVP에서는 카카오만 보여줘요.
+  // 네이버·구글 버튼 코드는 그대로 있어서, MVP 이후 이 목록에 추가하면 다시 보여요.
   static const _visibleSocialTypes = [SocialType.kakao];
 
   final _formKey = GlobalKey<FormState>();
@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
 
-  // ȭ�鼳�輭 8��: ���̵�� ��й�ȣ�� ��� �Էµž� �α��� ��ư Ȱ��ȭ
+  // 화면설계서 8번: 아이디와 비밀번호가 모두 입력돼야 로그인 버튼 활성화
   bool get _canLogin =>
       _idController.text.trim().isNotEmpty &&
       _passwordController.text.isNotEmpty;
@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // ���ڸ� �Է��� ������ ȭ���� �ٽ� �׷��� ��ư Ȱ��ȭ ���θ� �����ؿ�.
+    // 글자를 입력할 때마다 화면을 다시 그려서 버튼 활성화 여부를 갱신해요.
     _idController.addListener(_onInputChanged);
     _passwordController.addListener(_onInputChanged);
   }
@@ -60,11 +60,11 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // ������������������ ���� ������������������
+  // ───────── 동작 ─────────
 
   Future<void> _onLoginPressed() async {
-    if (_isLoading) return; // ��û �� �ߺ� Ŭ�� ����
-    FocusScope.of(context).unfocus(); // Ű���� ������
+    if (_isLoading) return; // 요청 중 중복 클릭 방지
+    FocusScope.of(context).unfocus(); // 키보드 내리기
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -76,20 +76,20 @@ class _LoginScreenState extends State<LoginScreen> {
       _goNextScreen(response);
     } on AuthException catch (e) {
       if (!mounted) return;
-      // ���輭 ���� 3: �α��� ���� �� ���̵�� ����, ��й�ȣ�� �ʱ�ȭ
+      // 설계서 상태 3: 로그인 실패 → 아이디는 유지, 비밀번호만 초기화
       if (e.code == AuthErrorCode.credentialsInvalid) {
         _passwordController.clear();
       }
       _showMessage(e.message);
     } catch (e) {
-      _showMessage('�α��� �� ������ ������.');
+      _showMessage('로그인 중 문제가 생겼어요.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _onSocialPressed(SocialType type) async {
-    if (_isLoading) return; // ��û �� �ߺ� Ŭ�� ����
+    if (_isLoading) return; // 요청 중 중복 클릭 방지
 
     try {
       switch (type) {
@@ -101,13 +101,13 @@ class _LoginScreenState extends State<LoginScreen> {
           await _authService.loginWithGoogle();
       }
     } on UnimplementedError catch (e) {
-      _showMessage(e.message ?? '�غ� ���̿���.');
+      _showMessage(e.message ?? '준비 중이에요.');
     } on KakaoAppKeyMissingException catch (e) {
       _showMessage(e.toString());
     } on AuthException catch (e) {
       _showMessage(e.message);
     } catch (e) {
-      _showMessage('�α��� �� ������ ������.');
+      _showMessage('로그인 중 문제가 생겼어요.');
     }
   }
 
@@ -115,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await _authService.loginWithKakao();
-      // ���輭 ���� 5: īī�� ���� ��� �� ���� �޽��� ���� �α��� ȭ�� ����
+      // 설계서 상태 5: 카카오 인증 취소 → 오류 메시지 없이 로그인 화면 유지
       if (response == null) return;
       _goNextScreen(response);
     } finally {
@@ -123,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// �α��� ���� �� ���� ȭ������ �̵�
+  /// 로그인 성공 후 다음 화면으로 이동
   void _goNextScreen(LoginResponse response) {
     if (!mounted) return;
     if (widget.onAuthenticated != null) {
@@ -136,9 +136,9 @@ class _LoginScreenState extends State<LoginScreen> {
       context.go(AppRoutes.room);
       return;
     }
-    // TODO(router): ������ ����/Ʃ�丮�� ��� �߰� �� onboardingStep�� �б�
-    //   OnboardingStep.profile   �� ���� ������ ����
-    //   OnboardingStep.furniture �� Ʃ�丮��(���� ����)
+    // TODO(router): 프로필 설정/튜토리얼 경로 추가 후 onboardingStep별 분기
+    //   OnboardingStep.profile   → 최초 프로필 설정
+    //   OnboardingStep.furniture → 튜토리얼(가구 선택)
     // PROFILE/FURNITURE destinations still await their owning screens.
     context.go(AppRoutes.onboarding);
   }
@@ -148,19 +148,19 @@ class _LoginScreenState extends State<LoginScreen> {
     showAppNotice(context, message);
   }
 
-  // ������������������ �Է� �˻� ������������������
+  // ───────── 입력 검사 ─────────
 
   String? _validateId(String? value) {
-    if (value == null || value.trim().isEmpty) return '���̵� �Է����ּ���.';
+    if (value == null || value.trim().isEmpty) return '아이디를 입력해주세요.';
     return null;
   }
 
   String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) return '��й�ȣ�� �Է����ּ���.';
+    if (value == null || value.isEmpty) return '비밀번호를 입력해주세요.';
     return null;
   }
 
-  // ������������������ ȭ�� ������������������
+  // ───────── 화면 ─────────
 
   @override
   Widget build(BuildContext context) {
@@ -179,13 +179,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: LoginStyle.introToId),
                 LoginTextField(
                   controller: _idController,
-                  hintText: '���̵� �Է�',
+                  hintText: '아이디 입력',
                   icon: Icons.person_outline,
                   keyboardType: TextInputType.text,
                   textInputAction: TextInputAction.next,
-                  // ȭ�鼳�輭 4��: ���� �ҹ���(a~z), ����(0~9)�� �Է� ����
-                  // �빮��, ����, Ư�����ڴ� ������ �Էµ��� �ʾƿ�.
-                  // TODO: �鿣�� ���̵� ����(�̸���?) �� Ȯ�� �� ���߱�
+                  // 화면설계서 4번: 영문 소문자(a~z), 숫자(0~9)만 입력 가능
+                  // 대문자, 공백, 특수문자는 눌러도 입력되지 않아요.
+                  // TODO: 백엔드 아이디 형식(이메일?) 팀 확인 후 맞추기
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[a-z0-9]')),
                   ],
@@ -194,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: LoginStyle.idToPassword),
                 LoginTextField(
                   controller: _passwordController,
-                  hintText: '��й�ȣ �Է�',
+                  hintText: '비밀번호 입력',
                   icon: Icons.lock_outline,
                   isPassword: true,
                   textInputAction: TextInputAction.done,
@@ -204,9 +204,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildOptionsRow(),
                 const SizedBox(height: LoginStyle.findToLogin),
                 PrimaryButton(
-                  text: '�α���',
+                  text: '로그인',
                   isLoading: _isLoading,
-                  // null�� �ѱ�� ��ư�� ��Ȱ��ȭ(ȸ��, �� ����)�ſ�.
+                  // null을 넘기면 버튼이 비활성화(회색, 안 눌림)돼요.
                   onPressed: _canLogin ? _onLoginPressed : null,
                 ),
                 const SizedBox(height: LoginStyle.loginToSns),
@@ -226,15 +226,15 @@ class _LoginScreenState extends State<LoginScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: IconButton(
-        tooltip: '�ڷΰ���',
+        tooltip: '뒤로가기',
         padding: EdgeInsets.zero,
-        // ��ư ũ�⸦ ������(36x36)�� �� ���缭, �Ʒ� �ΰ����� ���� 45�� ��Ȯ�ؿ�.
+        // 버튼 크기를 아이콘(36x36)에 딱 맞춰서, 아래 로고까지 여백 45가 정확해요.
         constraints: const BoxConstraints.tightFor(
           width: LoginStyle.backIconSize,
           height: LoginStyle.backIconSize,
         ),
         iconSize: LoginStyle.backIconSize,
-        // ���� �� ���̴� ��ġ ���� ����(48)�� ���ּ� ���� ũ�⸦ 36���� �����.
+        // 눈에 안 보이는 터치 여유 영역(48)을 없애서 실제 크기를 36으로 맞춰요.
         style: IconButton.styleFrom(
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
@@ -248,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // �Ǳ׸� ���� 250x49. �̹��� ������ �޶� ��׷����� �ʰ� contain ���.
+        // 피그마 기준 250x49. 이미지 비율이 달라도 찌그러지지 않게 contain 사용.
         Image.asset(
           'assets/images/img_login_logo.png',
           width: LoginStyle.logoWidth,
@@ -258,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
           semanticLabel: 'Toggle me',
         ),
         const SizedBox(height: LoginStyle.logoToIntro),
-        Text('������ ����ϰ� �߰��ϴ�\n������ ��ī�̺� ����', style: LoginStyle.intro),
+        Text('취향을 기록하고 발견하는\n공간형 아카이빙 서비스', style: LoginStyle.intro),
       ],
     );
   }
@@ -266,16 +266,16 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildOptionsRow() {
     return Row(
       children: [
-        // Spacer: �� ������ ä���� '���̵𡤺�й�ȣ ã��'�� ������ ������ �о����.
+        // Spacer: 빈 공간을 채워서 '아이디·비밀번호 찾기'를 오른쪽 끝으로 밀어줘요.
         const Spacer(),
         TextButton(
-          onPressed: () => _showMessage('���̵𡤺�й�ȣ ã��� �غ� ���̿���.'),
+          onPressed: () => _showMessage('아이디·비밀번호 찾기는 준비 중이에요.'),
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: Text('���̵𡤺�й�ȣ ã��', style: LoginStyle.findAccount),
+          child: Text('아이디·비밀번호 찾기', style: LoginStyle.findAccount),
         ),
       ],
     );
@@ -284,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildSocialSection() {
     return Column(
       children: [
-        Center(child: Text('SNS ���� �α���', style: LoginStyle.sns)),
+        Center(child: Text('SNS 간편 로그인', style: LoginStyle.sns)),
         const SizedBox(height: LoginStyle.snsToKakao),
         Wrap(
           alignment: WrapAlignment.center,
@@ -306,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('������ �����Ű���?', style: LoginStyle.signUpQuestion),
+          Text('계정이 없으신가요?', style: LoginStyle.signUpQuestion),
           TextButton(
             onPressed: () => context.go(AppRoutes.signup),
             style: TextButton.styleFrom(
@@ -314,7 +314,7 @@ class _LoginScreenState extends State<LoginScreen> {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: Text('ȸ������', style: LoginStyle.signUpLink),
+            child: Text('회원가입', style: LoginStyle.signUpLink),
           ),
         ],
       ),

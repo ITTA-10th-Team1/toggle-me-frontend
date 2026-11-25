@@ -27,8 +27,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('����ϱ�'));
-    for (final label in ['�����', '����', '���巹��Ʈ', '�����ϱ�']) {
+    await tester.tap(find.text('기록하기'));
+    for (final label in ['방명록', '상점', '무드레포트', '공유하기']) {
       await tester.tap(find.byTooltip(label));
     }
     expect(actions, ['record', 'guestbook', 'shop', 'mood', 'share']);

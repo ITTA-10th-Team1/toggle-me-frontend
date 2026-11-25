@@ -16,7 +16,7 @@ import 'package:toggle_me/features/guide/presentation/usage_guide_screen.dart';
 Future<void> openGuide(
   WidgetTester tester, {
   Future<void> Function()? complete,
-  String nickname = '�׽���',
+  String nickname = '테스터',
   double textScale = 1,
 }) async {
   await tester.pumpWidget(
@@ -31,13 +31,13 @@ Future<void> openGuide(
         builder: (context) => Scaffold(
           body: TextButton(
             onPressed: () => showUsageGuide(context, onComplete: complete),
-            child: const Text('���̵� ����'),
+            child: const Text('가이드 열기'),
           ),
         ),
       ),
     ),
   );
-  await tester.tap(find.text('���̵� ����'));
+  await tester.tap(find.text('가이드 열기'));
   await tester.pumpAndSettle();
 }
 
@@ -68,23 +68,23 @@ void main() {
   testWidgets('five pages support previous, then finish once', (tester) async {
     var completed = 0;
     await openGuide(tester, complete: () async => completed++);
-    expect(find.byTooltip('����'), findsNothing);
-    await tester.tap(find.text('����'));
+    expect(find.byTooltip('이전'), findsNothing);
+    await tester.tap(find.text('다음'));
     await tester.pumpAndSettle();
-    expect(find.text('������ ��� ������ ���� �ٸ纸����'), findsOneWidget);
-    await tester.tap(find.byTooltip('����'));
+    expect(find.text('가구를 모아 나만의 방을 꾸며보세요'), findsOneWidget);
+    await tester.tap(find.byTooltip('이전'));
     await tester.pumpAndSettle();
-    expect(find.text('�����ϴ� �͵�� ä��� ������ ����'), findsOneWidget);
+    expect(find.text('좋아하는 것들로 채우는 나만의 공간'), findsOneWidget);
     for (var i = 0; i < 4; i++) {
-      await tester.tap(find.text('����'));
+      await tester.tap(find.text('다음'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     }
     expect(completed, 0);
-    await tester.tap(find.text('�� ������'));
+    await tester.tap(find.text('내 방으로'));
     await tester.pumpAndSettle();
     expect(completed, 1);
-    expect(find.text('���̵� ����'), findsOneWidget);
+    expect(find.text('가이드 열기'), findsOneWidget);
   });
 
   testWidgets('leaving an incomplete guide does not mark it completed', (
@@ -108,14 +108,14 @@ void main() {
       },
     );
     for (var i = 0; i < 4; i++) {
-      await tester.tap(find.text('����'));
+      await tester.tap(find.text('다음'));
       await tester.pumpAndSettle();
     }
-    await tester.tap(find.text('�� ������'));
+    await tester.tap(find.text('내 방으로'));
     await tester.pumpAndSettle();
     expect(find.byType(UsageGuideScreen), findsOneWidget);
-    expect(find.text('�Ϸ� ������ �������� ���߾��. �ٽ� �õ��� �ּ���.'), findsOneWidget);
-    await tester.tap(find.text('�� ������'));
+    expect(find.text('완료 정보를 저장하지 못했어요. 다시 시도해 주세요.'), findsOneWidget);
+    await tester.tap(find.text('내 방으로'));
     await tester.pumpAndSettle();
     expect(attempts, 2);
     expect(find.byType(UsageGuideScreen), findsNothing);
@@ -134,10 +134,10 @@ void main() {
       },
     );
     for (var i = 0; i < 4; i++) {
-      await tester.tap(find.text('����'));
+      await tester.tap(find.text('다음'));
       await tester.pumpAndSettle();
     }
-    await tester.tap(find.text('�� ������'));
+    await tester.tap(find.text('내 방으로'));
     await tester.pump();
     final button = tester.widget<FilledButton>(find.byType(FilledButton));
     expect(button.onPressed, isNull);
@@ -154,10 +154,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await openGuide(tester, textScale: 1.4, nickname: '���־��ֱ����ڴг����׽�Ʈ');
+    await openGuide(tester, textScale: 1.4, nickname: '아주아주긴사용자닉네임테스트');
     for (var i = 0; i < 5; i++) {
       expect(tester.takeException(), isNull);
-      final next = find.text(i == 4 ? '�� ������' : '����');
+      final next = find.text(i == 4 ? '내 방으로' : '다음');
       await tester.ensureVisible(next);
       await tester.pumpAndSettle();
       if (i < 4) {
@@ -185,10 +185,10 @@ void main() {
         .first;
     expect(tester.getSize(card), const Size(344, 590));
     for (var i = 0; i < 4; i++) {
-      await tester.tap(find.text('����'));
+      await tester.tap(find.text('다음'));
       await tester.pumpAndSettle();
     }
-    expect(find.text('OO���� ȭ��'), findsOneWidget);
+    expect(find.text('OO님의 화면'), findsOneWidget);
   });
 
   testWidgets('book icon matches the 46px header controls', (tester) async {
@@ -220,7 +220,7 @@ void main() {
         image.dispose();
       });
       if (i < 4) {
-        await tester.tap(find.text('����'));
+        await tester.tap(find.text('다음'));
         await tester.pumpAndSettle();
       }
     }

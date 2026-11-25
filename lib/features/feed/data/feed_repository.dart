@@ -6,7 +6,7 @@ class FeedRepository {
 
   final ApiClient _apiClient;
 
-  /// �� ��� ��ü ��ȸ
+  /// 내 기록 전체 조회
   Future<List<ItemFeedModel>> getAllItems({
     String sort = 'LATEST',
     int? cursor,

@@ -61,7 +61,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
         if (variants.length != 1) {
           throw const MemberApiException(
             'DESIGN_SELECTION',
-            '�⺻ ���� �������� Ȯ������ ���߾��.',
+            '기본 가구 디자인을 확인하지 못했어요.',
           );
         }
         choices[(type['id'] as num).toInt()] = (variants.single['id'] as num)
@@ -70,7 +70,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
       if (supported.length != 2) {
         throw const MemberApiException(
           'FURNITURE_MISSING',
-          '�ſ����� ������ Ȯ������ ���߾��.',
+          '거울·냉장고 정보를 확인하지 못했어요.',
         );
       }
       if (!mounted) return;
@@ -108,9 +108,9 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
         if (available['available'] != true) {
           final reason = available['reason'];
           throw MemberApiException('HANDLE_UNAVAILABLE', switch (reason) {
-            'DUPLICATED' => '�̹� ��� ���� ID����.',
-            'RESERVED' => '����� �� ���� ID����.',
-            _ => 'ID�� ���� �ҹ��ڡ����ڡ����� 3~20�ڷ� �Է��� �ּ���.',
+            'DUPLICATED' => '이미 사용 중인 ID예요.',
+            'RESERVED' => '사용할 수 없는 ID예요.',
+            _ => 'ID는 영문 소문자·숫자·밑줄 3~20자로 입력해 주세요.',
           });
         }
         await repo.api.request(
@@ -139,7 +139,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('�� �� �����ϱ�')),
+    appBar: AppBar(title: const Text('내 방 시작하기')),
     body: loading
         ? const Center(child: CircularProgressIndicator())
         : error != null
@@ -148,10 +148,10 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(error!, textAlign: TextAlign.center),
-                TextButton(onPressed: load, child: const Text('�ٽ� �õ�')),
+                TextButton(onPressed: load, child: const Text('다시 시도')),
                 TextButton(
                   onPressed: () => context.go(AppRoutes.login),
-                  child: const Text('�α����ϱ�'),
+                  child: const Text('로그인하기'),
                 ),
               ],
             ),
@@ -165,20 +165,20 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
                     controller: nickname,
                     enabled: !saving,
                     maxLength: 30,
-                    decoration: const InputDecoration(labelText: '�г���'),
+                    decoration: const InputDecoration(labelText: '닉네임'),
                   ),
                   TextField(
                     controller: handle,
                     enabled: !saving,
                     maxLength: 20,
                     decoration: const InputDecoration(
-                      labelText: '���� ID',
-                      helperText: '���� �ҹ��ڡ����ڡ����� 3~20��',
+                      labelText: '고유 ID',
+                      helperText: '영문 소문자·숫자·밑줄 3~20자',
                     ),
                   ),
                   const SizedBox(height: 24),
                 ],
-                const Text('�ſ�� ������� ���� �����ؿ�.'),
+                const Text('거울과 냉장고로 방을 시작해요.'),
                 for (final type in types)
                   ListTile(
                     leading: const Icon(Icons.check_circle_outline),
@@ -186,7 +186,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
                   ),
                 Row(
                   children: [
-                    const Expanded(child: Text('�� ����')),
+                    const Expanded(child: Text('방 공개')),
                     RoomModeToggle(
                       isOn: visibility.isPublic,
                       onChanged: saving
@@ -203,7 +203,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: saving ? null : submit,
-                  child: Text(saving ? '���� �ߡ�' : '�Ϸ�'),
+                  child: Text(saving ? '저장 중…' : '완료'),
                 ),
               ],
             ),

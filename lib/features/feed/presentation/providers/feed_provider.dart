@@ -4,7 +4,7 @@ import '../../../item/presentation/providers/item_upload_provider.dart';
 import '../../data/feed_repository.dart';
 import '../../data/item_feed_model.dart';
 
-// ���� ���
+// 정렬 방식
 enum FeedSort { latest, oldest }
 
 extension FeedSortExtension on FeedSort {
@@ -20,9 +20,9 @@ extension FeedSortExtension on FeedSort {
   String get label {
     switch (this) {
       case FeedSort.latest:
-        return '�ֽż�';
+        return '최신순';
       case FeedSort.oldest:
-        return '�����ȼ�';
+        return '오래된순';
     }
   }
 }
@@ -32,7 +32,7 @@ final feedRepositoryProvider = Provider<FeedRepository>((ref) {
   return FeedRepository(ref.watch(apiClientProvider));
 });
 
-// �ǵ� ����
+// 피드 상태
 class FeedState {
   const FeedState({
     this.items = const [],
@@ -72,7 +72,7 @@ class FeedState {
   }
 }
 
-// �ǵ� Provider
+// 피드 Provider
 final feedProvider = NotifierProvider<FeedNotifier, FeedState>(
   FeedNotifier.new,
 );
@@ -80,7 +80,7 @@ final feedProvider = NotifierProvider<FeedNotifier, FeedState>(
 class FeedNotifier extends Notifier<FeedState> {
   late FeedRepository _repository;
 
-  // ���� �ֱٿ� ������ ��û�� �����ϱ� ���� ��ȣ
+  // 가장 최근에 시작한 요청을 구분하기 위한 번호
   int _requestId = 0;
   int? _furnitureTypeId;
 
@@ -90,25 +90,25 @@ class FeedNotifier extends Notifier<FeedState> {
     return const FeedState();
   }
 
-  /// ���� ��ū ����
+  /// 인증 토큰 적용
   Future<void> _ensureAccessToken() async {
     final tokenStorage = ref.read(tokenStorageProvider);
     final token = await tokenStorage.getAccessToken();
 
     if (token == null || token.isEmpty) {
-      throw Exception('�α����� �ʿ��մϴ�.');
+      throw Exception('로그인이 필요합니다.');
     }
 
     ref.read(apiClientProvider).setAccessToken(token);
   }
 
-  /// ���� ��ȸ �� ���ΰ�ħ
+  /// 최초 조회 및 새로고침
   Future<void> fetchInitial({
     int? furnitureTypeId,
     bool changeCategory = false,
   }) async {
     if (changeCategory) _furnitureTypeId = furnitureTypeId;
-    // �� ��û ��ȣ �߱�
+    // 새 요청 번호 발급
     final requestId = ++_requestId;
     final currentSort = state.sort;
 
@@ -128,7 +128,7 @@ class FeedNotifier extends Notifier<FeedState> {
         furnitureTypeId: _furnitureTypeId,
       );
 
-      // �� �ֽ� ��û�� ���۵ƴٸ� ���� ���� ����
+      // 더 최신 요청이 시작됐다면 이전 응답 무시
       if (requestId != _requestId) return;
 
       state = state.copyWith(
@@ -144,7 +144,7 @@ class FeedNotifier extends Notifier<FeedState> {
     }
   }
 
-  /// ���� ������ ��ȸ
+  /// 다음 페이지 조회
   Future<void> loadMore() async {
     if (state.isLoading ||
         state.isLoadingMore ||
@@ -154,11 +154,11 @@ class FeedNotifier extends Notifier<FeedState> {
       return;
     }
 
-    // ���� ��û ��ȣ�� ���� ��� ����
+    // 현재 요청 번호와 정렬 방식 저장
     final requestId = _requestId;
     final currentSort = state.sort;
 
-    // ���� ����� ������ ������ ID�� cursor�� ���
+    // 현재 목록의 마지막 아이템 ID를 cursor로 사용
     final cursor = state.items.last.id;
 
     state = state.copyWith(isLoadingMore: true);
@@ -172,7 +172,7 @@ class FeedNotifier extends Notifier<FeedState> {
         furnitureTypeId: _furnitureTypeId,
       );
 
-      // ���� ���� ������ ���� ��û�� ��ȿȭ�ƴٸ� ���� ����
+      // 정렬 변경 등으로 이전 요청이 무효화됐다면 응답 무시
       if (requestId != _requestId) return;
 
       if (newItems.isEmpty) {
@@ -192,7 +192,7 @@ class FeedNotifier extends Notifier<FeedState> {
     }
   }
 
-  /// �߰� ��ȸ ���� �� ����ڰ� �ٽ� �õ�
+  /// 추가 조회 실패 시 사용자가 다시 시도
   Future<void> retryLoadMore() async {
     if (state.isLoading || state.isLoadingMore || !state.hasMore) {
       return;
@@ -203,11 +203,11 @@ class FeedNotifier extends Notifier<FeedState> {
     await loadMore();
   }
 
-  /// ���� ����
+  /// 정렬 변경
   Future<void> changeSort(FeedSort sort) async {
     if (state.sort == sort) return;
 
-    // ������ ���� ������ �� ���ο� ���� ��ȸ ����
+    // 정렬을 먼저 변경한 뒤 새로운 최초 조회 시작
     state = state.copyWith(sort: sort);
 
     await fetchInitial();

@@ -91,8 +91,8 @@ void main() {
               return (
                 200,
                 [
-                  {'id': 11, 'code': 'mirror', 'name': '�ſ�'},
-                  {'id': 22, 'code': 'fridge', 'name': '�����'},
+                  {'id': 11, 'code': 'mirror', 'name': '거울'},
+                  {'id': 22, 'code': 'fridge', 'name': '냉장고'},
                 ],
               );
             case '/api/v1/furniture-types/11/variants':
@@ -121,7 +121,7 @@ void main() {
               return failVisibility
                   ? (
                       500,
-                      {'code': 'INTERNAL_SERVER_ERROR', 'message': '���� ���� ����'},
+                      {'code': 'INTERNAL_SERVER_ERROR', 'message': '설정 저장 실패'},
                     )
                   : (200, {'visibility': 'SOCIAL_OFF'});
           }
@@ -145,9 +145,9 @@ void main() {
         addTearDown(router.dispose);
         await tester.pumpWidget(MaterialApp.router(routerConfig: router));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('�Ϸ�'));
+        await tester.tap(find.text('완료'));
         await tester.pumpAndSettle();
-        expect(find.text('���� �ߡ�'), findsOneWidget);
+        expect(find.text('저장 중…'), findsOneWidget);
         await tester.tap(find.byType(FilledButton));
         await tester.pump();
         expect(creates, 1);
@@ -158,8 +158,8 @@ void main() {
           failVisibility ? findsNothing : findsOneWidget,
         );
         if (failVisibility) {
-          expect(find.text('���� ���� ����'), findsOneWidget);
-          expect(find.text('�Ϸ�'), findsOneWidget);
+          expect(find.text('설정 저장 실패'), findsOneWidget);
+          expect(find.text('완료'), findsOneWidget);
         }
       },
     );
@@ -202,7 +202,7 @@ void main() {
           'code': o.path.endsWith('/refresh')
               ? 'INVALID_REFRESH_TOKEN'
               : 'UNAUTHORIZED',
-          'message': '�ٽ� �α���',
+          'message': '다시 로그인',
         },
       ),
     );
@@ -339,7 +339,7 @@ void main() {
       }
       return (
         500,
-        {'code': 'INTERNAL_SERVER_ERROR', 'message': '���� ����', 'errors': []},
+        {'code': 'INTERNAL_SERVER_ERROR', 'message': '저장 실패', 'errors': []},
       );
     });
     final repo = RoomRepository(client(adapter, MemoryTokens()));

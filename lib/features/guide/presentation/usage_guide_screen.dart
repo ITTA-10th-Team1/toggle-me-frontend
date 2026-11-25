@@ -32,18 +32,18 @@ class _UsageGuideScreenState extends State<UsageGuideScreen> {
   int page = 0;
   bool saving = false;
   static const titles = [
-    '�����ϴ� �͵�� ä��� ������ ����',
-    '������ ��� ������ ���� �ٸ纸����',
-    'ī�װ������� ������ ��ƺ�����',
-    '���� ��� �ӿ��� ���� ������ �߰��ؿ�',
-    'ģ���� ������ �����ؿ�',
+    '좋아하는 것들로 채우는 나만의 공간',
+    '가구를 모아 나만의 방을 꾸며보세요',
+    '카테고리별로 취향을 모아보세요',
+    '쌓인 기록 속에서 나의 취향을 발견해요',
+    '친구와 취향을 공유해요',
   ];
   static const descriptions = [
-    '����۹̡��� ���� �����ϴ� �͵��� ���\n���� �ϳ����� ������ ���� ����� �����̿���.',
-    '�پ��� �������� ������ ���ϴ� ��ġ�� ��ġ�ϸ�\n������ ������ �����Ӱ� �ٸ纸����.',
-    '����, �м�, ��ȭ �� ī�װ������� ���� ������\n���� �����ϴ� �͵��� ����غ�����.\n�ϳ��� ä����� ������ ���� �ϼ��ſ�!',
-    '���� ���� ��ϵ��� AI�� �м���\n������ ����� Ư¡�� �˷� �� �ſ���.',
-    '���ݱ��� ���� ���� ���� �ؽ��±׸�\nģ������ ������ �� �־��.',
+    '‘토글미’는 내가 좋아하는 것들을 모아\n세상에 하나뿐인 나만의 방을 만드는 공간이에요.',
+    '다양한 가구들을 모으고 원하는 위치에 배치하며\n나만의 공간을 자유롭게 꾸며보세요.',
+    '음식, 패션, 영화 등 카테고리별로 나뉜 가구에\n내가 좋아하는 것들을 기록해보세요.\n하나씩 채울수록 나만의 방이 완성돼요!',
+    '내가 모은 기록들을 AI가 분석해\n나만의 취향과 특징을 알려 줄 거예요.',
+    '지금까지 모은 나의 취향 해시태그를\n친구에게 공유할 수 있어요.',
   ];
 
   Future<void> next() async {
@@ -57,7 +57,7 @@ class _UsageGuideScreenState extends State<UsageGuideScreen> {
       await widget.onComplete?.call();
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
-      if (mounted) showAppNotice(context, '�Ϸ� ������ �������� ���߾��. �ٽ� �õ��� �ּ���.');
+      if (mounted) showAppNotice(context, '완료 정보를 저장하지 못했어요. 다시 시도해 주세요.');
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -108,7 +108,7 @@ class _UsageGuideScreenState extends State<UsageGuideScreen> {
                               height: 42,
                               child: Center(
                                 child: Semantics(
-                                  label: '�̿밡�̵� ${page + 1} / 5',
+                                  label: '이용가이드 ${page + 1} / 5',
                                   liveRegion: true,
                                   child: ExcludeSemantics(
                                     child: SizedBox(
@@ -201,7 +201,7 @@ class _UsageGuideScreenState extends State<UsageGuideScreen> {
                                         shape: const CircleBorder(),
                                       ),
                                       child: const Tooltip(
-                                        message: '����',
+                                        message: '이전',
                                         child: Icon(Icons.arrow_back, size: 24),
                                       ),
                                     ),
@@ -230,7 +230,7 @@ class _UsageGuideScreenState extends State<UsageGuideScreen> {
                                             ),
                                           )
                                         : Text(
-                                            page == 4 ? '�� ������' : '����',
+                                            page == 4 ? '내 방으로' : '다음',
                                             style: AppTextStyles.head3.copyWith(
                                               fontWeight: FontWeight.w400,
                                             ),
@@ -264,11 +264,11 @@ class _GuideArtwork extends StatelessWidget {
     child: Semantics(
       image: true,
       label: const [
-        '������ �� ����',
-        '�پ��� ���� ����',
-        '���� ī�װ����� ��� ����',
-        '����� �м��� ���� �±׸� ����� ����',
-        '���� �ؽ��±� ���� ����',
+        '나만의 방 예시',
+        '다양한 가구 예시',
+        '가구 카테고리별 기록 예시',
+        '기록을 분석해 취향 태그를 만드는 예시',
+        '취향 해시태그 공유 예시',
       ][page],
       child: ExcludeSemantics(
         child: FittedBox(
@@ -331,17 +331,17 @@ class _CategoryArt extends StatelessWidget {
       Positioned(
         left: 0,
         top: -70,
-        child: Opacity(opacity: 0.5, child: card('å��', null)),
+        child: Opacity(opacity: 0.5, child: card('책상', null)),
       ),
       Positioned(
         left: 0,
         top: 33,
-        child: card('�ſ�', 'assets/room/raster/mirror_color.png'),
+        child: card('거울', 'assets/room/raster/mirror_color.png'),
       ),
       Positioned(
         left: 0,
         top: 137,
-        child: card('�����', 'assets/room/raster/fridge_color.png'),
+        child: card('냉장고', 'assets/room/raster/fridge_color.png'),
       ),
       const Positioned(
         left: 89,
@@ -364,9 +364,9 @@ class _CategoryArt extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _Pill(text: '����', filled: true, width: 84),
+              const _Pill(text: '음식', filled: true, width: 84),
               const SizedBox(height: 10),
-              for (final text in ['������', '���� ����ũ', '�Ƹ޸�ī��'])
+              for (final text in ['떡볶이', '딸기 케이크', '아메리카노'])
                 Padding(
                   padding: const EdgeInsets.only(bottom: 7),
                   child: Row(
@@ -401,7 +401,7 @@ class _CategoryArt extends StatelessWidget {
                       const Icon(Icons.add, size: 16, color: Color(0xFF767676)),
                       const SizedBox(width: 5),
                       Text(
-                        '����ϱ�',
+                        '기록하기',
                         style: AppTextStyles.body2.copyWith(
                           color: const Color(0xFF767676),
                         ),
@@ -427,13 +427,13 @@ class _AnalysisArt extends StatelessWidget {
       const Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _Pill(text: '���� ����ũ', heart: true),
+          _Pill(text: '딸기 케이크', heart: true),
           SizedBox(width: 14),
-          _Pill(text: 'LP�÷��̾�', heart: true),
+          _Pill(text: 'LP플레이어', heart: true),
         ],
       ),
       const SizedBox(height: 6),
-      const _Pill(text: '���̾��', heart: true),
+      const _Pill(text: '아이언맨', heart: true),
       const SizedBox(height: 18),
       Container(
         width: 86,
@@ -449,7 +449,7 @@ class _AnalysisArt extends StatelessWidget {
             const Icon(Icons.auto_awesome, color: _orange, size: 27),
             const SizedBox(height: 5),
             Text(
-              'AI �м�',
+              'AI 분석',
               style: AppTextStyles.body2.copyWith(color: Colors.black),
             ),
           ],
@@ -460,14 +460,14 @@ class _AnalysisArt extends StatelessWidget {
         width: 1,
         child: CustomPaint(painter: _VerticalDotsPainter()),
       ),
-      const _Pill(text: '#������ȭ', outlined: true),
+      const _Pill(text: '#마블영화', outlined: true),
       const SizedBox(height: 6),
       const Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _Pill(text: '#���ϵ���Ʈ', outlined: true),
+          _Pill(text: '#과일디저트', outlined: true),
           SizedBox(width: 14),
-          _Pill(text: '#��Ƽ������', outlined: true),
+          _Pill(text: '#빈티지감성', outlined: true),
         ],
       ),
     ],
@@ -500,13 +500,13 @@ class _ShareArt extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'OO���� ȭ��',
+                    'OO님의 화면',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.body2.copyWith(color: Colors.black),
                   ),
                   const SizedBox(height: 16),
-                  for (final text in ['#������ȭ', '#���ϵ���Ʈ', '#��Ƽ������'])
+                  for (final text in ['#마블영화', '#과일디저트', '#빈티지감성'])
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: _Pill(text: text, outlined: true),
@@ -534,7 +534,7 @@ class _ShareArt extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                '�����ϱ�',
+                '공유하기',
                 style: AppTextStyles.body2.copyWith(color: Colors.black),
               ),
             ],

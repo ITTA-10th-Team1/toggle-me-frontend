@@ -16,7 +16,7 @@ import '../../features/auth/data/models/onboarding_step.dart';
 import '../../features/room/domain/room_visibility.dart';
 import '../../features/social/presentation/friend_list_screen.dart';
 import '../../features/social/presentation/widgets/share_taste_dialog.dart';
-//import '../../features/pinboard/presentation/pinboard_screen.dart'; �ӽ� �ɺ��� ���� ����
+//import '../../features/pinboard/presentation/pinboard_screen.dart'; 임시 핀보드 연결 끊기
 import '../../features/feed/presentation/feed_screen.dart';
 import '../../features/item_detail/presentation/item_detail_screen.dart';
 import 'app_routes.dart';
@@ -57,12 +57,12 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.signup,
       builder: (context, state) => const DevPlaceholderScreen(
-        title: 'ȸ������',
-        description: 'ȸ������ ȭ�� �غ� ��',
+        title: '회원가입',
+        description: '회원가입 화면 준비 중',
       ),
     ),
 
-    // ���� ���� 3D �� ȭ��
+    // 실제 메인 3D 방 화면
     GoRoute(
       path: AppRoutes.room,
       builder: (context, state) {
@@ -75,7 +75,7 @@ final GoRouter appRouter = GoRouter(
               : RoomVisibility.socialOn,
           onVisibilityChanged: guest
               ? (_) async {
-                  showAppNotice(context, '���� �����Ϸ��� �α����� �ּ���.');
+                  showAppNotice(context, '방을 공개하려면 로그인해 주세요.');
                   return RoomVisibility.socialOff;
                 }
               : null,
@@ -100,7 +100,7 @@ final GoRouter appRouter = GoRouter(
           ),
 
           onCategory: (category) {
-            showAppNotice(context, '$category ����� �غ� ���Դϴ�.');
+            showAppNotice(context, '$category 기능은 준비 중입니다.');
           },
         );
       },
@@ -129,7 +129,7 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
-    /*�ɺ��� ���� ����(�ӽ�)
+    /*핀보드 연결 끊기(임시)
     GoRoute(
       path: AppRoutes.pinboard,
       builder: (context, state) => const PinboardScreen(),
@@ -138,22 +138,22 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.guestbook,
       builder: (context, state) =>
-          const DevPlaceholderScreen(title: '�����', description: '����� ȭ�� �غ� ��'),
+          const DevPlaceholderScreen(title: '방명록', description: '방명록 화면 준비 중'),
     ),
 
     GoRoute(
       path: AppRoutes.shop,
       builder: (context, state) => const DevPlaceholderScreen(
-        title: '������ ����',
-        description: '������ ���� ȭ�� �غ� ��',
+        title: '아이템 상점',
+        description: '아이템 상점 화면 준비 중',
       ),
     ),
 
     GoRoute(
       path: AppRoutes.calendar,
       builder: (context, state) => const DevPlaceholderScreen(
-        title: '�������� Ķ����',
-        description: 'Ķ���� ȭ�� �غ� ��',
+        title: '월별무드 캘린더',
+        description: '캘린더 화면 준비 중',
       ),
     ),
 
@@ -165,20 +165,20 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.mypage,
       builder: (context, state) => const DevPlaceholderScreen(
-        title: '����������',
-        description: '���������� ȭ�� �غ� ��',
+        title: '마이페이지',
+        description: '마이페이지 화면 준비 중',
       ),
     ),
 
     GoRoute(
       path: AppRoutes.notifications,
       builder: (context, state) =>
-          const DevPlaceholderScreen(title: '�˸�', description: '�˸� ȭ�� �غ� ��'),
+          const DevPlaceholderScreen(title: '알림', description: '알림 화면 준비 중'),
     ),
   ],
 
   errorBuilder: (context, state) => Scaffold(
-    appBar: AppBar(title: const Text('����')),
+    appBar: AppBar(title: const Text('오류')),
     body: Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -187,11 +187,11 @@ final GoRouter appRouter = GoRouter(
           children: [
             const Icon(Icons.error_outline, size: 64),
             const SizedBox(height: 16),
-            const Text('404 - �������� ã�� �� �����ϴ�.', textAlign: TextAlign.center),
+            const Text('404 - 페이지를 찾을 수 없습니다.', textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => context.go(AppRoutes.room),
-              child: const Text('3D ������ ���ư���'),
+              child: const Text('3D 방으로 돌아가기'),
             ),
           ],
         ),

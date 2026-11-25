@@ -23,7 +23,7 @@ class RoomRepository {
     final floors = await list('/api/v1/rooms/$id/floors');
     final floor = floors.where((e) => e['floorNumber'] == 1).firstOrNull;
     if (floor == null) {
-      throw const MemberApiException('FLOOR_MISSING', '���� 1�� ������ ã�� ���߾��.');
+      throw const MemberApiException('FLOOR_MISSING', '방의 1층 정보를 찾지 못했어요.');
     }
     final furniture = await list(
       '/api/v1/rooms/$id/floors/${floor['id']}/furniture',

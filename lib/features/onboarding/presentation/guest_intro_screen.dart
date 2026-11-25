@@ -12,7 +12,7 @@ class GuestIntroScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.guestBackground,
       appBar: AppBar(
-        title: const Text('��ȸ�� �̿� �ȳ�'),
+        title: const Text('비회원 이용 안내'),
         backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
@@ -29,26 +29,26 @@ class GuestIntroScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               const Text(
-                '��ȸ������ �����ϱ�',
+                '비회원으로 시작하기',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               const Text(
-                '��ȸ���� OFF ���� ���񽺸� �̿��� �� �ֽ��ϴ�.\n'
-                'ȸ�� ���� ����� �α��� �� ����� �� �ֽ��ϴ�.',
+                '비회원은 OFF 모드로 서비스를 이용할 수 있습니다.\n'
+                '회원 전용 기능은 로그인 후 사용할 수 있습니다.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 15, height: 1.6),
               ),
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: () => context.go('${AppRoutes.room}?guest=1'),
-                child: const Text('��ȸ������ ����ϱ�'),
+                child: const Text('비회원으로 계속하기'),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => context.go(AppRoutes.login),
-                child: const Text('�α����ϱ�'),
+                child: const Text('로그인하기'),
               ),
             ],
           ),

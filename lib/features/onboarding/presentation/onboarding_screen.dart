@@ -74,7 +74,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await _draft.persist();
       if (mounted) context.go(AppRoutes.login);
     } catch (_) {
-      if (mounted) showAppNotice(context, '���� ������ �������� ���߾��. �ٽ� �õ��� �ּ���.');
+      if (mounted) showAppNotice(context, '공개 설정을 저장하지 못했어요. 다시 시도해 주세요.');
     }
   }
 
@@ -202,15 +202,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '������ ������ ���� ���ٿ� ���',
+          '취향을 모으는 가장 나다운 방법',
           style: AppTextStyles.head1.copyWith(color: AppColors.textPrimary),
         ),
 
         const SizedBox(height: 12),
 
         Text(
-          '���� �������� ���� ������\n'
-          '������ �濡 �ϳ��� ����صμ���',
+          '점점 잊혀가는 나의 취향을\n'
+          '나만의 방에 하나씩 기록해두세요',
           style: AppTextStyles.body2.copyWith(
             color: AppColors.onboardingTextSecondary,
           ),
@@ -223,7 +223,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Column(
       children: [
         AppButton(
-          label: '��ȸ������ �����ϱ�',
+          label: '비회원으로 시작하기',
           variant: AppButtonVariant.guest,
           width: double.infinity,
           height: 53,
@@ -234,7 +234,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 8),
 
         AppButton(
-          label: '�α���',
+          label: '로그인',
           variant: AppButtonVariant.login,
           width: double.infinity,
           height: 53,

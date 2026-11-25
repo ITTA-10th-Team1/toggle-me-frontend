@@ -19,7 +19,7 @@ class MemberApi {
 
   Future<dynamic> request(String method, String path, {Object? data}) async {
     if (dio.options.baseUrl.isEmpty) {
-      throw const MemberApiException('CONFIGURATION', '���� �ּҰ� �������� �ʾҾ��.');
+      throw const MemberApiException('CONFIGURATION', '서버 주소가 설정되지 않았어요.');
     }
     var access = await tokens.getAccessToken();
     if (access == null || access.isEmpty) {
@@ -36,7 +36,7 @@ class MemberApi {
         if (await tokens.getAccessToken() == access) await _refresh();
         final next = await tokens.getAccessToken();
         if (next == null) {
-          throw const MemberApiException('UNAUTHORIZED', '�ٽ� �α����� �ּ���.');
+          throw const MemberApiException('UNAUTHORIZED', '다시 로그인해 주세요.');
         }
         try {
           return await _send(method, path, data, next);
@@ -78,7 +78,7 @@ class MemberApi {
   Future<void> _rotateTokens() async {
     final refresh = await tokens.getRefreshToken();
     if (refresh == null || refresh.isEmpty) {
-      throw const MemberApiException('UNAUTHORIZED', '�α����� �ʿ��ؿ�.');
+      throw const MemberApiException('UNAUTHORIZED', '로그인이 필요해요.');
     }
     try {
       final response = await dio.post<Map<String, dynamic>>(
@@ -88,7 +88,7 @@ class MemberApi {
       final body = response.data!;
       // Do not restore a session that was logged out/replaced while waiting.
       if (await tokens.getRefreshToken() != refresh) {
-        throw const MemberApiException('UNAUTHORIZED', '�α��� ���°� ����Ǿ����.');
+        throw const MemberApiException('UNAUTHORIZED', '로그인 상태가 변경되었어요.');
       }
       await tokens.saveTokens(
         accessToken: body['accessToken'] as String,
@@ -129,11 +129,11 @@ class MemberApiException implements Exception {
     if (body is Map) {
       return MemberApiException(
         body['code'] as String? ?? 'UNKNOWN',
-        body['message'] as String? ?? '��û�� ó������ ���߾��.',
+        body['message'] as String? ?? '요청을 처리하지 못했어요.',
         body['errors'] is List ? body['errors'] as List : const [],
       );
     }
-    return const MemberApiException('NETWORK', '������ Ȯ���ϰ� �ٽ� �õ��� �ּ���.');
+    return const MemberApiException('NETWORK', '연결을 확인하고 다시 시도해 주세요.');
   }
   @override
   String toString() => message;
