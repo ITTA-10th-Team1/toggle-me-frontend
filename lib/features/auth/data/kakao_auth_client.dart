@@ -1,17 +1,24 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 /// 카카오 SDK로 로그인해서 '카카오 Access Token'을 받아오는 담당.
 /// (우리 서비스 토큰이 아니에요. 이 토큰을 서버에 보내면 서버가 우리 토큰을 줘요.)
 class KakaoAuthClient {
-  /// 네이티브 앱 키는 코드에 직접 쓰지 않고, 실행할 때
+  /// 카카오 키는 코드에 직접 쓰지 않고, 실행할 때
   /// --dart-define-from-file=dart_defines.json 으로 넣어요. (git에 안 올라감)
+  /// 앱(Android·iOS)은 네이티브 앱 키, 웹은 JavaScript 키를 써요.
   static const _nativeAppKey = String.fromEnvironment('KAKAO_NATIVE_APP_KEY');
+  static const _javaScriptAppKey = String.fromEnvironment(
+    'KAKAO_JAVASCRIPT_APP_KEY',
+  );
 
   static bool _initialized = false;
 
-  /// 키가 설정돼 있는지 (키가 없는 팀원 환경에서 앱이 꺼지지 않게 확인용)
-  bool get hasAppKey => _nativeAppKey.isNotEmpty;
+  /// 지금 실행 중인 곳(웹/앱)에 필요한 키가 설정돼 있는지
+  /// (키가 없는 팀원 환경에서 앱이 꺼지지 않게 확인용)
+  bool get hasAppKey =>
+      kIsWeb ? _javaScriptAppKey.isNotEmpty : _nativeAppKey.isNotEmpty;
 
   /// 카카오 로그인 후 카카오 Access Token을 돌려줘요.
   /// 사용자가 취소하면 null을 돌려줘요. (설계서 상태 5: 오류 메시지 없음)
@@ -66,12 +73,17 @@ class KakaoAuthClient {
     if (!hasAppKey) {
       throw const KakaoAppKeyMissingException();
     }
-    await KakaoSdk.init(nativeAppKey: _nativeAppKey);
+    // 두 키를 모두 넘기면 SDK가 웹/앱에 맞는 키를 골라 써요.
+    // (공유하기도 같은 SDK를 초기화해서, 두 곳 모두 같은 키를 넘겨야 해요.)
+    await KakaoSdk.init(
+      nativeAppKey: _nativeAppKey,
+      javaScriptAppKey: _javaScriptAppKey,
+    );
     _initialized = true;
   }
 }
 
-/// 카카오 네이티브 앱 키가 설정되지 않았을 때 던지는 예외
+/// 카카오 앱 키(앱: 네이티브, 웹: JavaScript)가 설정되지 않았을 때 던지는 예외
 class KakaoAppKeyMissingException implements Exception {
   const KakaoAppKeyMissingException();
 
