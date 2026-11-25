@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kakao_flutter_sdk_share/kakao_flutter_sdk_share.dart';
 
@@ -33,8 +34,16 @@ abstract class TasteShareService {
 
 /// 실제 공유 서비스 (카카오 SDK + 클립보드)
 class KakaoTasteShareService implements TasteShareService {
-  /// 네이티브 앱 키는 로그인과 같은 값을 써요. (dart_defines.json, git 제외)
+  /// 카카오 키는 로그인과 같은 값을 써요. (dart_defines.json, git 제외)
+  /// 앱(Android·iOS)은 네이티브 앱 키, 웹은 JavaScript 키를 써요.
   static const _nativeAppKey = String.fromEnvironment('KAKAO_NATIVE_APP_KEY');
+  static const _javaScriptAppKey = String.fromEnvironment(
+    'KAKAO_JAVASCRIPT_APP_KEY',
+  );
+
+  /// 지금 실행 중인 곳(웹/앱)에 필요한 키가 설정돼 있는지
+  static bool get _hasAppKey =>
+      kIsWeb ? _javaScriptAppKey.isNotEmpty : _nativeAppKey.isNotEmpty;
 
   static bool _initialized = false;
 
@@ -69,13 +78,18 @@ class KakaoTasteShareService implements TasteShareService {
   /// SDK 초기화는 처음 공유할 때 한 번만 해요. (main.dart를 고치지 않으려고)
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
-    if (_nativeAppKey.isEmpty) throw const KakaoShareKeyMissingException();
-    await KakaoSdk.init(nativeAppKey: _nativeAppKey);
+    if (!_hasAppKey) throw const KakaoShareKeyMissingException();
+    // 두 키를 모두 넘기면 SDK가 웹/앱에 맞는 키를 골라 써요.
+    // (로그인도 같은 SDK를 초기화해서, 두 곳 모두 같은 키를 넘겨야 해요.)
+    await KakaoSdk.init(
+      nativeAppKey: _nativeAppKey,
+      javaScriptAppKey: _javaScriptAppKey,
+    );
     _initialized = true;
   }
 }
 
-/// 카카오 네이티브 앱 키가 설정되지 않았을 때 던지는 예외
+/// 카카오 앱 키(앱: 네이티브, 웹: JavaScript)가 설정되지 않았을 때 던지는 예외
 class KakaoShareKeyMissingException implements Exception {
   const KakaoShareKeyMissingException();
 
