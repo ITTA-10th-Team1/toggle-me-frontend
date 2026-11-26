@@ -331,7 +331,24 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
+              borderSide: const BorderSide(
+                color: AppColors.darkIvory,
+                width: 1,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: AppColors.darkIvory,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: AppColors.darkIvory,
+                width: 1,
+              ),
             ),
           ),
           enabled:
@@ -408,6 +425,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AppColors.darkIvory, width: 1),
       ),
       child: Row(
         children: [

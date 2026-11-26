@@ -541,7 +541,24 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
+              borderSide: const BorderSide(
+                color: AppColors.darkIvory,
+                width: 1,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: AppColors.darkIvory,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: AppColors.darkIvory,
+                width: 1,
+              ),
             ),
           ),
           enabled: !state.isSubmitting,
@@ -633,6 +650,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: AppColors.darkIvory, width: 1),
       ),
       child: Row(
         children: [
