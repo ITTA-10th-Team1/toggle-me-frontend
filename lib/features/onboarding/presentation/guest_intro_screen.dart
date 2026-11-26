@@ -42,7 +42,7 @@ class GuestIntroScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: () => context.go(AppRoutes.room),
+                onPressed: () => context.go('${AppRoutes.room}?guest=1'),
                 child: const Text('비회원으로 계속하기'),
               ),
               const SizedBox(height: 12),

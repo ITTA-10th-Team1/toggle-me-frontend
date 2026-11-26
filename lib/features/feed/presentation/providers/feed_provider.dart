@@ -82,6 +82,7 @@ class FeedNotifier extends Notifier<FeedState> {
 
   // 가장 최근에 시작한 요청을 구분하기 위한 번호
   int _requestId = 0;
+  int? _furnitureTypeId;
 
   @override
   FeedState build() {
@@ -102,7 +103,11 @@ class FeedNotifier extends Notifier<FeedState> {
   }
 
   /// 최초 조회 및 새로고침
-  Future<void> fetchInitial() async {
+  Future<void> fetchInitial({
+    int? furnitureTypeId,
+    bool changeCategory = false,
+  }) async {
+    if (changeCategory) _furnitureTypeId = furnitureTypeId;
     // 새 요청 번호 발급
     final requestId = ++_requestId;
     final currentSort = state.sort;
@@ -118,7 +123,10 @@ class FeedNotifier extends Notifier<FeedState> {
     try {
       await _ensureAccessToken();
 
-      final items = await _repository.getAllItems(sort: currentSort.apiValue);
+      final items = await _repository.getAllItems(
+        sort: currentSort.apiValue,
+        furnitureTypeId: _furnitureTypeId,
+      );
 
       // 더 최신 요청이 시작됐다면 이전 응답 무시
       if (requestId != _requestId) return;
@@ -161,6 +169,7 @@ class FeedNotifier extends Notifier<FeedState> {
       final newItems = await _repository.getAllItems(
         sort: currentSort.apiValue,
         cursor: cursor,
+        furnitureTypeId: _furnitureTypeId,
       );
 
       // 정렬 변경 등으로 이전 요청이 무효화됐다면 응답 무시

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
+import 'room_action_icon.dart';
 
 /// One continuous capsule with five independently accessible actions.
 class RoomBottomBar extends StatelessWidget {
@@ -11,14 +13,14 @@ class RoomBottomBar extends StatelessWidget {
     this.onGuestbook,
     this.onShop,
     this.onMood,
-    this.onFriends,
+    this.onShare,
   });
 
   final VoidCallback? onRecord;
   final VoidCallback? onGuestbook;
   final VoidCallback? onShop;
   final VoidCallback? onMood;
-  final VoidCallback? onFriends;
+  final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -57,14 +59,7 @@ class RoomBottomBar extends StatelessWidget {
                           children: [
                             Icon(Icons.add, size: 20),
                             SizedBox(width: 10),
-                            Text(
-                              '기록하기',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: -0.4,
-                              ),
-                            ),
+                            Text('기록하기', style: AppTextStyles.body1),
                           ],
                         ),
                       ),
@@ -76,7 +71,7 @@ class RoomBottomBar extends StatelessWidget {
                     const SizedBox(width: 5),
                     _action('mood', '무드레포트', onMood),
                     const SizedBox(width: 5),
-                    _action('friends', '친구목록', onFriends),
+                    _action('share', '공유하기', onShare),
                   ],
                 ),
               ),
@@ -95,12 +90,14 @@ class RoomBottomBar extends StatelessWidget {
         onPressed: onPressed,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(minWidth: 0, minHeight: 48),
-        icon: SvgPicture.asset(
-          'assets/room/icons/$asset.svg',
-          width: 46,
-          height: 46,
-          fit: BoxFit.contain,
-        ),
+        icon: asset == 'share'
+            ? const RoomActionIcon()
+            : SvgPicture.asset(
+                'assets/room/icons/$asset.svg',
+                width: 46,
+                height: 46,
+                fit: BoxFit.contain,
+              ),
       ),
     );
   }

@@ -7,7 +7,8 @@ import '../../../app/theme/app_colors.dart';
 import 'providers/feed_provider.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
-  const FeedScreen({super.key});
+  const FeedScreen({super.key, this.furnitureTypeId});
+  final int? furnitureTypeId;
 
   @override
   ConsumerState<FeedScreen> createState() => _FeedScreenState();
@@ -23,7 +24,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     _scrollController.addListener(_onScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await ref.read(feedProvider.notifier).fetchInitial();
+      if (!mounted) return;
+      await ref
+          .read(feedProvider.notifier)
+          .fetchInitial(
+            furnitureTypeId: widget.furnitureTypeId,
+            changeCategory: true,
+          );
 
       if (mounted) {
         _loadMoreIfNeeded();

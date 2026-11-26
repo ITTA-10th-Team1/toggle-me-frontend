@@ -3,6 +3,7 @@ class AppRoutes {
 
   static const onboarding = '/onboarding';
   static const guestIntro = '/guest-intro';
+  static const memberSetup = '/member-setup';
 
   static const login = '/login';
   static const signup = '/signup';
