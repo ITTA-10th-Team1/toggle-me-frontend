@@ -102,7 +102,16 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 
     if (!mounted || image == null) return;
 
-    await ref.read(itemUploadProvider.notifier).setImage(image);
+    final furnitureTypeId = _selectedFurnitureTypeId;
+
+    if (furnitureTypeId == null) {
+      _showMessage('카테고리를 먼저 선택해주세요.');
+      return;
+    }
+
+    await ref
+        .read(itemUploadProvider.notifier)
+        .setImage(image, furnitureTypeId: furnitureTypeId);
 
     if (!mounted) return;
 
@@ -307,7 +316,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       onTap: image == null ? _showImagePicker : null,
       child: Container(
         width: double.infinity,
-        height: 181,
+        height: image == null ? 181 : null,
         decoration: BoxDecoration(
           color: AppColors.uploadBackground,
           borderRadius: BorderRadius.circular(14),
@@ -353,23 +362,24 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: Stack(
-        fit: StackFit.expand,
         children: [
-          Image.file(image, fit: BoxFit.cover),
+          Image.file(image, width: double.infinity, fit: BoxFit.fitWidth),
           if (state.isUploading)
-            Container(
-              color: Colors.black45,
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: AppColors.white),
-                    SizedBox(height: 10),
-                    Text(
-                      '사진 업로드 중...',
-                      style: TextStyle(color: AppColors.white),
-                    ),
-                  ],
+            Positioned.fill(
+              child: Container(
+                color: Colors.black45,
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: AppColors.white),
+                      SizedBox(height: 10),
+                      Text(
+                        '사진 업로드 중...',
+                        style: TextStyle(color: AppColors.white),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -558,6 +568,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                     showCheckmark: false,
                     onSelected: null,
                     backgroundColor: AppColors.darkIvory,
+                    disabledColor: AppColors.darkIvory,
                     selectedColor: AppColors.uploadBackground,
                     shape: const StadiumBorder(),
                     side: BorderSide.none,

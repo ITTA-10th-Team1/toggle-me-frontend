@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/item_repository.dart';
+import '../../data/item_recommendation_storage.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../auth/data/token_storage.dart';
 
@@ -32,6 +32,7 @@ class ItemUploadState {
     this.isGeneratingTags = false,
     this.isSubmitting = false,
     this.recommendedTags = const [],
+    this.recommendedSearchQueries = const [],
     this.selectedTags = const {},
     this.errorMessage,
   });
@@ -42,6 +43,7 @@ class ItemUploadState {
   final bool isGeneratingTags;
   final bool isSubmitting;
   final List<String> recommendedTags;
+  final List<String> recommendedSearchQueries;
   final Set<String> selectedTags;
   final String? errorMessage;
 
@@ -52,6 +54,7 @@ class ItemUploadState {
     bool? isGeneratingTags,
     bool? isSubmitting,
     List<String>? recommendedTags,
+    List<String>? recommendedSearchQueries,
     Set<String>? selectedTags,
     String? errorMessage,
     bool clearImage = false,
@@ -65,6 +68,8 @@ class ItemUploadState {
       isGeneratingTags: isGeneratingTags ?? this.isGeneratingTags,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       recommendedTags: recommendedTags ?? this.recommendedTags,
+      recommendedSearchQueries:
+          recommendedSearchQueries ?? this.recommendedSearchQueries,
       selectedTags: selectedTags ?? this.selectedTags,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
@@ -97,7 +102,7 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
   }
 
   /// 사진 선택 또는 교체
-  Future<void> setImage(File image) async {
+  Future<void> setImage(File image, {required int furnitureTypeId}) async {
     if (state.isSubmitting) return;
 
     _operationId++;
@@ -107,6 +112,7 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
 
     try {
       await _ensureAccessToken();
+
       // 1. S3 이미지 업로드
       final imageKey = await _repository.uploadImage(image);
 
@@ -119,21 +125,30 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
       );
 
       // 2. AI 분석 요청
-      final analysisId = await _repository.requestAnalysis(imageKey);
+      final analysisId = await _repository.requestAnalysis(
+        imageKey,
+        furnitureTypeId,
+      );
 
       if (operationId != _operationId) return;
 
       // 3. AI 분석 결과 조회
-      final tags = await _repository.pollAnalysis(
+      final analysisResult = await _repository.pollAnalysis(
         analysisId,
         shouldContinue: () => operationId == _operationId,
       );
+
+      print('========== AI 분석 결과 ==========');
+      print('분석 상태: ${analysisResult.status}');
+      print('추천 태그: ${analysisResult.tags}');
+      print('추천 검색어: ${analysisResult.searchQueries}');
 
       if (operationId != _operationId) return;
 
       state = state.copyWith(
         isGeneratingTags: false,
-        recommendedTags: tags,
+        recommendedTags: analysisResult.tags,
+        recommendedSearchQueries: analysisResult.searchQueries,
         selectedTags: {},
       );
     } catch (e) {
@@ -177,7 +192,7 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
     required String memo,
     required String visibility,
   }) async {
-    if (state.isSubmitting) return;
+    if (state.isSubmitting || state.isGeneratingTags) return;
 
     final imageKey = state.imageKey;
 
@@ -189,16 +204,29 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
     state = state.copyWith(isSubmitting: true, clearError: true);
 
     try {
-      // 서비스 accessToken 설정
       await _ensureAccessToken();
 
-      await _repository.registerItem(
+      // 1. 아이템 등록 후 생성된 ID 받기
+      final itemId = await _repository.registerItem(
         imageKey: imageKey,
         furnitureTypeId: furnitureTypeId,
         memo: memo,
         visibility: visibility,
         tags: state.selectedTags.toList(),
       );
+
+      // 2. 거울인 경우 AI 검색어를 아이템 ID와 연결해 저장
+      if (furnitureTypeId == 1) {
+        await ItemRecommendationStorage().saveSearchQueries(
+          itemId,
+          state.recommendedSearchQueries,
+        );
+      }
+
+      print('========== 검색어 저장 ==========');
+      print('가구 종류 ID: $furnitureTypeId');
+      print('등록된 아이템 ID: $itemId');
+      print('저장할 검색어: ${state.recommendedSearchQueries}');
 
       state = const ItemUploadState();
     } catch (e) {
@@ -211,6 +239,7 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
       print('아이템 기록 실패 원인: $e');
 
       state = state.copyWith(isSubmitting: false, errorMessage: e.toString());
+
       rethrow;
     }
   }

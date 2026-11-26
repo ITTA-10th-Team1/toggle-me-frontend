@@ -9,6 +9,8 @@ import '../../../core/widgets/room_mode_toggle.dart';
 import 'providers/item_detail_provider.dart';
 import '../data/item_detail_model.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 class ItemDetailScreen extends ConsumerStatefulWidget {
   const ItemDetailScreen({super.key, required this.itemId});
 
@@ -462,12 +464,113 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     );
   }
 
+  /// 네이버 쇼핑 검색 페이지 열기
+  Future<void> _openShoppingSearch(String query) async {
+    final uri = Uri.https('search.shopping.naver.com', 'search/all', {
+      'query': query,
+    });
+
+    final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!success && mounted) {
+      showAppNotice(context, '쇼핑 검색 페이지를 열지 못했어요.');
+    }
+  }
+
+  /// 거울 AI 추천 검색어
+  Widget _buildMirrorSearchSection(List<String> searchQueries) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              _isRecommendationExpanded = !_isRecommendationExpanded;
+            });
+          },
+          child: Row(
+            children: [
+              const Text(
+                'AI 추천 상품',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                _isRecommendationExpanded
+                    ? Icons.keyboard_arrow_up
+                    : Icons.keyboard_arrow_down,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+        if (_isRecommendationExpanded) ...[
+          const SizedBox(height: 10),
+          if (searchQueries.isEmpty)
+            const Text(
+              '추천 검색어가 없어요.',
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: searchQueries.map((query) {
+                return InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => _openShoppingSearch(query),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkIvory,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          query,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        const Icon(
+                          Icons.open_in_new,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildRecommendationSection(
     int furnitureTypeId,
     int itemId,
     ItemDetailState state,
   ) {
-    // 냉장고(furnitureTypeId: 2)만 AI 음식 추천 대상
+    // 거울(furnitureTypeId: 1)
+    if (furnitureTypeId == 1) {
+      return _buildMirrorSearchSection(state.searchQueries);
+    }
+
+    // 냉장고(furnitureTypeId: 2)
     if (furnitureTypeId != 2) return const SizedBox.shrink();
 
     return Column(
