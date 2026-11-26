@@ -19,7 +19,7 @@ void main() {
                 onGuestbook: () => actions.add('guestbook'),
                 onShop: () => actions.add('shop'),
                 onMood: () => actions.add('mood'),
-                onFriends: () => actions.add('friends'),
+                onShare: () => actions.add('share'),
               ),
             ),
           ),
@@ -28,10 +28,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('기록하기'));
-    for (final label in ['방명록', '상점', '무드레포트', '친구목록']) {
+    for (final label in ['방명록', '상점', '무드레포트', '공유하기']) {
       await tester.tap(find.byTooltip(label));
     }
-    expect(actions, ['record', 'guestbook', 'shop', 'mood', 'friends']);
+    expect(actions, ['record', 'guestbook', 'shop', 'mood', 'share']);
     expect(tester.takeException(), isNull);
   });
 
@@ -54,7 +54,7 @@ void main() {
                   onGuestbook: () {},
                   onShop: () {},
                   onMood: () {},
-                  onFriends: () {},
+                  onShare: () {},
                 ),
               ),
             ),

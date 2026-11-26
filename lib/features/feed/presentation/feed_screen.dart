@@ -25,6 +25,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     _scrollController.addListener(_onScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
       await ref
           .read(feedProvider.notifier)
           .fetchInitial(furnitureTypeId: widget.furnitureTypeId);

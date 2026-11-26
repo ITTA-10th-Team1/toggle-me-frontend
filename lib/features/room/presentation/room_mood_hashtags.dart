@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 
 /// UI data, not a proposed backend response schema.
 class RoomMoodHashtag {
@@ -22,22 +23,17 @@ class RoomMoodHashtags extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         itemCount: tags.length > 5 ? 5 : tags.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 5),
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (context, index) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
+            color: Colors.white,
+            border: Border.all(color: AppColors.surfaceMuted),
             borderRadius: BorderRadius.circular(55),
           ),
           child: Text(
             '#${tags[index].text}',
-            style: const TextStyle(
-              fontSize: 16,
-              height: 1.5,
-              letterSpacing: -0.4,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF6A6763),
-            ),
+            style: AppTextStyles.body2.copyWith(color: const Color(0xFF545454)),
           ),
         ),
       ),

@@ -6,16 +6,16 @@ class FeedRepository {
 
   final ApiClient _apiClient;
 
-  /// 가구별 내 기록 조회
+  /// 가구별 또는 전체 내 기록 조회
   Future<List<ItemFeedModel>> getAllItems({
-    required int furnitureTypeId,
+    int? furnitureTypeId,
     String sort = 'LATEST',
     int? cursor,
   }) async {
     final response = await _apiClient.dio.get(
-      '/api/v1/items/feed',
+      furnitureTypeId == null ? '/api/v1/items/all' : '/api/v1/items/feed',
       queryParameters: {
-        'furnitureTypeId': furnitureTypeId,
+        if (furnitureTypeId != null) 'furnitureTypeId': furnitureTypeId,
         'sort': sort,
         if (cursor != null) 'cursor': cursor,
       },

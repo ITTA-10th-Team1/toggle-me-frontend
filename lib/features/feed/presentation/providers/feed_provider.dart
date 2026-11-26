@@ -113,6 +113,7 @@ class FeedNotifier extends Notifier<FeedState> {
       _furnitureTypeId = furnitureTypeId;
     }
 
+    // 새 요청 번호 발급
     final requestId = ++_requestId;
     final currentSort = state.sort;
     final selectedFurnitureTypeId = _furnitureTypeId;
