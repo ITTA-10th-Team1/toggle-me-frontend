@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:toggle_me/app/theme/app_colors.dart';
 
@@ -102,7 +101,16 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 
     if (!mounted || image == null) return;
 
-    await ref.read(itemUploadProvider.notifier).setImage(image);
+    final furnitureTypeId = _selectedFurnitureTypeId;
+
+    if (furnitureTypeId == null) {
+      _showMessage('카테고리를 먼저 선택해주세요.');
+      return;
+    }
+
+    await ref
+        .read(itemUploadProvider.notifier)
+        .setImage(image, furnitureTypeId: furnitureTypeId);
 
     if (!mounted) return;
 
@@ -188,13 +196,18 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       return;
     }
 
+    if (uploadState.isGeneratingTags) {
+      _showMessage('AI 분석이 완료된 후 기록할 수 있습니다.');
+      return;
+    }
+
     if (uploadState.imageKey == null) {
       _showMessage('사진 업로드에 실패했습니다. 다시 선택해 주세요.');
       return;
     }
 
     try {
-      await ref
+      final success = await ref
           .read(itemUploadProvider.notifier)
           .submit(
             furnitureTypeId: furnitureTypeId,
@@ -203,6 +216,11 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
           );
 
       if (!mounted) return;
+
+      if (!success) {
+        _showMessage('기록에 실패했습니다. 다시 시도해 주세요.');
+        return;
+      }
 
       _showMessage('사진이 기록되었습니다.');
       context.pop();
@@ -307,7 +325,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       onTap: image == null ? _showImagePicker : null,
       child: Container(
         width: double.infinity,
-        height: 181,
+        height: image == null ? 181 : null,
         decoration: BoxDecoration(
           color: AppColors.uploadBackground,
           borderRadius: BorderRadius.circular(14),
@@ -353,23 +371,24 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: Stack(
-        fit: StackFit.expand,
         children: [
-          Image.file(image, fit: BoxFit.cover),
+          Image.file(image, width: double.infinity, fit: BoxFit.fitWidth),
           if (state.isUploading)
-            Container(
-              color: Colors.black45,
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: AppColors.white),
-                    SizedBox(height: 10),
-                    Text(
-                      '사진 업로드 중...',
-                      style: TextStyle(color: AppColors.white),
-                    ),
-                  ],
+            Positioned.fill(
+              child: Container(
+                color: Colors.black45,
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: AppColors.white),
+                      SizedBox(height: 10),
+                      Text(
+                        '사진 업로드 중...',
+                        style: TextStyle(color: AppColors.white),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -433,6 +452,11 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                 onTap: state.isSubmitting
                     ? null
                     : () {
+                        if (state.selectedImage != null) {
+                          _showMessage('가구를 변경하려면 선택한 사진을 먼저 삭제해 주세요.');
+                          return;
+                        }
+
                         setState(() {
                           _selectedCategory = index;
                         });
@@ -531,7 +555,24 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
+              borderSide: const BorderSide(
+                color: AppColors.darkIvory,
+                width: 1,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: AppColors.darkIvory,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: AppColors.darkIvory,
+                width: 1,
+              ),
             ),
           ),
           enabled: !state.isSubmitting,
@@ -558,6 +599,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                     showCheckmark: false,
                     onSelected: null,
                     backgroundColor: AppColors.darkIvory,
+                    disabledColor: AppColors.darkIvory,
                     selectedColor: AppColors.uploadBackground,
                     shape: const StadiumBorder(),
                     side: BorderSide.none,
@@ -622,6 +664,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: AppColors.darkIvory, width: 1),
       ),
       child: Row(
         children: [
@@ -707,7 +750,12 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
             child: SizedBox(
               height: 48,
               child: ElevatedButton(
-                onPressed: state.isSubmitting ? null : _handleSubmit,
+                onPressed:
+                    state.isSubmitting ||
+                        state.isUploading ||
+                        state.isGeneratingTags
+                    ? null
+                    : _handleSubmit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.roomAccent,
                   disabledBackgroundColor: AppColors.disabled,

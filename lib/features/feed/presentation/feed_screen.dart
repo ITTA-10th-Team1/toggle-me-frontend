@@ -7,8 +7,9 @@ import '../../../app/theme/app_colors.dart';
 import 'providers/feed_provider.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
-  const FeedScreen({super.key, this.furnitureTypeId});
-  final int? furnitureTypeId;
+  const FeedScreen({super.key, required this.furnitureTypeId});
+
+  final int furnitureTypeId;
 
   @override
   ConsumerState<FeedScreen> createState() => _FeedScreenState();
@@ -25,12 +26,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+
       await ref
           .read(feedProvider.notifier)
-          .fetchInitial(
-            furnitureTypeId: widget.furnitureTypeId,
-            changeCategory: true,
-          );
+          .fetchInitial(furnitureTypeId: widget.furnitureTypeId);
 
       if (mounted) {
         _loadMoreIfNeeded();
@@ -314,11 +313,17 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
     // 등록된 아이템이 없는 경우
     if (state.items.isEmpty) {
-      return const Center(
-        child: Text(
-          '아직 등록된 아이템이 없어요.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+      return GridView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          crossAxisSpacing: 5,
+          mainAxisSpacing: 8,
+          childAspectRatio: 0.78,
         ),
+        itemCount: 0,
+        itemBuilder: (context, index) => const SizedBox.shrink(),
       );
     }
 

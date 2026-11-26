@@ -1,26 +1,24 @@
-import '../../core/widgets/app_notice.dart';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/app_notice.dart';
 import '../../core/widgets/dev_placeholder_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/data/models/onboarding_step.dart';
 import '../../features/item/presentation/item_upload_screen.dart';
 import '../../features/onboarding/presentation/guest_intro_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/onboarding/presentation/member_setup_screen.dart';
 import '../../features/room/presentation/room_screen.dart';
 import '../../features/room/presentation/room_presentation_config.dart';
 import '../../features/room/presentation/member_room_screen.dart';
-import '../../features/onboarding/presentation/member_setup_screen.dart';
-import '../../features/auth/data/models/onboarding_step.dart';
 import '../../features/room/domain/room_visibility.dart';
 import '../../features/social/presentation/friend_list_screen.dart';
 import '../../features/social/presentation/widgets/share_taste_dialog.dart';
-//import '../../features/pinboard/presentation/pinboard_screen.dart'; 임시 핀보드 연결 끊기
 import '../../features/feed/presentation/feed_screen.dart';
 import '../../features/item_detail/presentation/item_detail_screen.dart';
-import 'app_routes.dart';
 import '../../features/guide/presentation/usage_guide_screen.dart';
+import 'app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: const bool.fromEnvironment('ROOM_DEMO_ENTRY')
@@ -68,7 +66,11 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final guest = state.uri.queryParameters['guest'] == '1';
         const demo = bool.fromEnvironment('ROOM_DEMO_ENTRY');
-        if (!guest && !demo) return const MemberRoomScreen();
+
+        if (!guest && !demo) {
+          return const MemberRoomScreen();
+        }
+
         return RoomScreen(
           initialVisibility: guest
               ? RoomVisibility.socialOff
@@ -80,8 +82,29 @@ final GoRouter appRouter = GoRouter(
                 }
               : null,
           moodHashtags: demo ? RoomPresentationConfig.moodHashtags : const [],
-          onFurnitureTap: (category) =>
-              context.push(guest ? AppRoutes.login : AppRoutes.items),
+          onFurnitureTap: (category) {
+            if (guest) {
+              context.push(AppRoutes.login);
+              return;
+            }
+
+            final furnitureTypeId = category == 'mirror'
+                ? 1
+                : category == 'fridge'
+                ? 2
+                : null;
+
+            if (furnitureTypeId == null) return;
+
+            context.push(
+              Uri(
+                path: AppRoutes.items,
+                queryParameters: {
+                  'furnitureTypeId': furnitureTypeId.toString(),
+                },
+              ).toString(),
+            );
+          },
           onProfile: () => context.push(AppRoutes.mypage),
           onLogout: () => context.go(AppRoutes.login),
           onGuide: () => showUsageGuide(context),
@@ -98,7 +121,6 @@ final GoRouter appRouter = GoRouter(
                       .toList()
                 : const [],
           ),
-
           onCategory: (category) {
             showAppNotice(context, '$category 기능은 준비 중입니다.');
           },
@@ -109,8 +131,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.items,
       builder: (context, state) => FeedScreen(
-        furnitureTypeId: int.tryParse(
-          state.uri.queryParameters['furnitureTypeId'] ?? '',
+        furnitureTypeId: int.parse(
+          state.uri.queryParameters['furnitureTypeId']!,
         ),
       ),
     ),
@@ -124,12 +146,12 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.itemDetail,
       builder: (context, state) {
         final itemId = int.parse(state.pathParameters['itemId']!);
-
         return ItemDetailScreen(itemId: itemId);
       },
     ),
 
-    /*핀보드 연결 끊기(임시)
+    // 핀보드 연결 끊기(임시)
+    /*
     GoRoute(
       path: AppRoutes.pinboard,
       builder: (context, state) => const PinboardScreen(),
@@ -138,14 +160,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.guestbook,
       builder: (context, state) =>
-          const DevPlaceholderScreen(title: '방명록', description: '방명록 화면 준비 중'),
+          const DevPlaceholderScreen(title: '방명록', description: '방명록 기능 준비 중'),
     ),
 
     GoRoute(
       path: AppRoutes.shop,
       builder: (context, state) => const DevPlaceholderScreen(
         title: '아이템 상점',
-        description: '아이템 상점 화면 준비 중',
+        description: '아이템 상점 기능 준비 중',
       ),
     ),
 
@@ -153,7 +175,7 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.calendar,
       builder: (context, state) => const DevPlaceholderScreen(
         title: '월별무드 캘린더',
-        description: '캘린더 화면 준비 중',
+        description: '캘린더 기능 준비 중',
       ),
     ),
 
@@ -166,14 +188,14 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.mypage,
       builder: (context, state) => const DevPlaceholderScreen(
         title: '마이페이지',
-        description: '마이페이지 화면 준비 중',
+        description: '마이페이지 기능 준비 중',
       ),
     ),
 
     GoRoute(
       path: AppRoutes.notifications,
       builder: (context, state) =>
-          const DevPlaceholderScreen(title: '알림', description: '알림 화면 준비 중'),
+          const DevPlaceholderScreen(title: '알림', description: '알림 기능 준비 중'),
     ),
   ],
 

@@ -18,44 +18,42 @@ class ItemRepository {
   }
 
   /// AI 분석 요청
-  Future<String> requestAnalysis(String imageKey) async {
+  Future<String> requestAnalysis(String imageKey, int furnitureTypeId) async {
+    final payload = {'imageKey': imageKey, 'furnitureTypeId': furnitureTypeId};
+
+    print('========== AI 분석 요청 Payload ==========');
+    print(payload);
+
     final response = await _apiClient.dio.post(
       '/api/v1/images/analysis',
-      data: {'imageKey': imageKey},
+      data: payload,
     );
 
     print('AI 분석 요청 응답: ${response.data}');
 
     final result = ImageAnalysisResult.fromJson(
-      Map<String, dynamic>.from(response.data),
+      Map<String, dynamic>.from(response.data as Map),
     );
 
     return result.analysisId;
   }
 
   /// AI 분석 결과 조회
-  Future<List<String>> getAnalysisResult(String analysisId) async {
+  Future<ImageAnalysisStatus> getAnalysisResult(String analysisId) async {
     final response = await _apiClient.dio.get(
       '/api/v1/images/analysis/$analysisId',
     );
 
-    final result = ImageAnalysisStatus.fromJson(
-      Map<String, dynamic>.from(response.data),
-    );
+    print('========== AI 분석 원본 응답 ==========');
+    print(response.data);
 
-    switch (result.status) {
-      case 'COMPLETED':
-        return result.tags;
-      case 'FAILED':
-      case 'PENDING':
-        return [];
-      default:
-        throw Exception('알 수 없는 AI 분석 상태입니다.');
-    }
+    return ImageAnalysisStatus.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
   }
 
   /// AI 분석이 완료될 때까지 최대 60초 대기
-  Future<List<String>> pollAnalysis(
+  Future<ImageAnalysisStatus> pollAnalysis(
     String analysisId, {
     bool Function()? shouldContinue,
   }) async {
@@ -63,30 +61,20 @@ class ItemRepository {
 
     while (stopwatch.elapsed < const Duration(seconds: 60)) {
       if (shouldContinue != null && !shouldContinue()) {
-        return [];
+        return const ImageAnalysisStatus(status: 'FAILED');
       }
 
       await Future.delayed(const Duration(seconds: 2));
 
       if (shouldContinue != null && !shouldContinue()) {
-        return [];
+        return const ImageAnalysisStatus(status: 'FAILED');
       }
 
       try {
-        final response = await _apiClient.dio.get(
-          '/api/v1/images/analysis/$analysisId',
-        );
+        final result = await getAnalysisResult(analysisId);
 
-        final result = ImageAnalysisStatus.fromJson(
-          Map<String, dynamic>.from(response.data),
-        );
-
-        if (result.status == 'COMPLETED') {
-          return result.tags;
-        }
-
-        if (result.status == 'FAILED') {
-          return [];
+        if (result.status == 'COMPLETED' || result.status == 'FAILED') {
+          return result;
         }
       } catch (e) {
         print('AI 분석 결과 조회 실패: $e');
@@ -94,11 +82,11 @@ class ItemRepository {
       }
     }
 
-    return [];
+    return const ImageAnalysisStatus(status: 'FAILED');
   }
 
   /// 공통 아이템 등록
-  Future<void> registerItem({
+  Future<int> registerItem({
     required String imageKey,
     required int furnitureTypeId,
     required String memo,
@@ -125,7 +113,7 @@ class ItemRepository {
       throw ArgumentError('태그는 최대 3개까지 선택할 수 있습니다.');
     }
 
-    await _apiClient.dio.post(
+    final response = await _apiClient.dio.post(
       '/api/v1/items',
       data: {
         'imageKey': imageKey,
@@ -135,5 +123,8 @@ class ItemRepository {
         'tags': normalizedTags,
       },
     );
+
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return (data['id'] as num).toInt();
   }
 }
