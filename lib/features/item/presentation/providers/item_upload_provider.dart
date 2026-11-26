@@ -187,18 +187,20 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
   }
 
   /// 공통 아이템 등록
-  Future<void> submit({
+  Future<bool> submit({
     required int furnitureTypeId,
     required String memo,
     required String visibility,
   }) async {
-    if (state.isSubmitting || state.isGeneratingTags) return;
+    if (state.isSubmitting || state.isGeneratingTags) {
+      return false;
+    }
 
     final imageKey = state.imageKey;
 
     if (imageKey == null || state.isUploading) {
       state = state.copyWith(errorMessage: '사진 업로드가 완료되지 않았습니다.');
-      return;
+      return false;
     }
 
     state = state.copyWith(isSubmitting: true, clearError: true);
@@ -229,6 +231,7 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
       print('저장할 검색어: ${state.recommendedSearchQueries}');
 
       state = const ItemUploadState();
+      return true;
     } catch (e) {
       if (e is DioException) {
         print('실패한 API 주소: ${e.requestOptions.uri}');

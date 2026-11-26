@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:toggle_me/app/theme/app_colors.dart';
 
@@ -197,6 +196,11 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       return;
     }
 
+    if (uploadState.isGeneratingTags) {
+      _showMessage('AI 분석이 완료된 후 기록할 수 있습니다.');
+      return;
+    }
+
     if (uploadState.imageKey == null) {
       _showMessage('사진 업로드에 실패했습니다. 다시 선택해 주세요.');
       return;
@@ -212,6 +216,23 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
           );
 
       if (!mounted) return;
+
+      _showMessage('사진이 기록되었습니다.');
+      context.pop();
+      final success = await ref
+          .read(itemUploadProvider.notifier)
+          .submit(
+            furnitureTypeId: furnitureTypeId,
+            memo: _memoController.text.trim(),
+            visibility: _isPublic ? 'PUBLIC' : 'PRIVATE',
+          );
+
+      if (!mounted) return;
+
+      if (!success) {
+        _showMessage('AI 분석이 완료된 후 기록할 수 있습니다.');
+        return;
+      }
 
       _showMessage('사진이 기록되었습니다.');
       context.pop();
@@ -443,6 +464,11 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                 onTap: state.isSubmitting
                     ? null
                     : () {
+                        if (state.selectedImage != null) {
+                          _showMessage('가구를 변경하려면 선택한 사진을 먼저 삭제해 주세요.');
+                          return;
+                        }
+
                         setState(() {
                           _selectedCategory = index;
                         });
@@ -736,7 +762,12 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
             child: SizedBox(
               height: 48,
               child: ElevatedButton(
-                onPressed: state.isSubmitting ? null : _handleSubmit,
+                onPressed:
+                    state.isSubmitting ||
+                        state.isUploading ||
+                        state.isGeneratingTags
+                    ? null
+                    : _handleSubmit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.roomAccent,
                   disabledBackgroundColor: AppColors.disabled,
