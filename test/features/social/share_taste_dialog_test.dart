@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:toggle_me/features/social/data/taste_share_service.dart';
@@ -211,5 +213,110 @@ void main() {
   test('공유 글: 제목, 해시태그 한 줄 (링크 설정이 없으면 링크 줄은 빠짐)', () {
     const content = TasteShareContent(title: '나의 취향', tags: ['데님', '빵']);
     expect(content.text, '나의 취향\n#데님 #빵');
+  });
+
+  group('스티커 태그 (#47)', () {
+    // 실제 휴대폰(Pixel 9) 크기로 확인해요.
+    setUp(() {
+      final binding = TestWidgetsFlutterBinding.instance;
+      binding.platformDispatcher.views.first.physicalSize = const Size(
+        412,
+        915,
+      );
+      binding.platformDispatcher.views.first.devicePixelRatio = 1;
+    });
+    tearDown(() {
+      TestWidgetsFlutterBinding.instance.platformDispatcher.views.first
+          .resetPhysicalSize();
+      TestWidgetsFlutterBinding.instance.platformDispatcher.views.first
+          .resetDevicePixelRatio();
+    });
+
+    /// 태그 카드 (높이 240인 흰 칸)
+    Rect cardRect(WidgetTester tester) => tester.getRect(
+      find.ancestor(
+        of: find.text('나의 취향'),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.constraints?.maxHeight == ShareTasteDialog.cardHeight,
+        ),
+      ),
+    );
+
+    double fontSizeOf(WidgetTester tester, String text) =>
+        tester.widget<Text>(find.text(text)).style!.fontSize!;
+
+    /// 태그를 감싼 기울기(Transform.rotate)의 각도
+    double angleOf(WidgetTester tester, String text) {
+      final transform = tester.widget<Transform>(
+        find
+            .ancestor(of: find.text(text), matching: find.byType(Transform))
+            .first,
+      );
+      final m = transform.transform;
+      return math.atan2(m.entry(1, 0), m.entry(0, 0)) * 180 / math.pi;
+    }
+
+    testWidgets('첫 번째 태그는 크게, 나머지 4개는 작게 보인다', (tester) async {
+      await _openDialog(tester, tags: _fiveTags);
+
+      expect(fontSizeOf(tester, '#데님'), 22);
+      for (final tag in _fiveTags.skip(1)) {
+        expect(fontSizeOf(tester, '#$tag'), 15);
+      }
+    });
+
+    testWidgets('태그마다 기울어져 있고, 열 때마다 각도가 같다', (tester) async {
+      await _openDialog(tester, tags: _fiveTags);
+      final first = [for (final t in _fiveTags) angleOf(tester, '#$t')];
+
+      for (final angle in first) {
+        expect(angle.abs(), greaterThan(1)); // 모두 기울어짐
+      }
+
+      await tester.tap(find.text('내 방으로'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      final second = [for (final t in _fiveTags) angleOf(tester, '#$t')];
+      expect(second, first);
+    });
+
+    testWidgets('작은 태그가 큰 태그와 살짝 겹친다', (tester) async {
+      await _openDialog(tester, tags: _fiveTags);
+
+      /// 태그 스티커(배경 칸) 영역
+      Rect chip(String tag) => tester.getRect(
+        find
+            .ancestor(of: find.text(tag), matching: find.byType(Container))
+            .first,
+      );
+      final main = chip('#데님');
+      // 휴대폰 화면에서는 귀퉁이 4개 모두 큰 태그에 살짝 걸쳐요.
+      for (final t in _fiveTags.skip(1)) {
+        expect(chip('#$t').overlaps(main), isTrue, reason: t);
+      }
+    });
+
+    testWidgets('아주 긴 태그도 카드 밖으로 넘치지 않는다', (tester) async {
+      const longTags = [
+        '미드센추리모던인테리어',
+        '재즈플레이리스트모음집',
+        '빈티지카메라수집',
+        '주말캠핑과차박여행',
+        '홈카페레시피연구',
+      ];
+      await _openDialog(tester, tags: longTags);
+
+      expect(tester.takeException(), isNull); // 넘침 오류 없음
+      final card = cardRect(tester);
+      for (final tag in longTags) {
+        final chip = tester.getRect(find.text('#$tag'));
+        expect(chip.left, greaterThanOrEqualTo(card.left), reason: tag);
+        expect(chip.right, lessThanOrEqualTo(card.right), reason: tag);
+        expect(chip.bottom, lessThanOrEqualTo(card.bottom), reason: tag);
+      }
+    });
   });
 }
