@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -245,14 +247,7 @@ class _TasteCard extends StatelessWidget {
           Expanded(
             child: tags == null
                 ? const _NotEnoughTags()
-                // 태그가 아주 길어 칸을 넘치면 카드 안에서 스크롤돼요.
-                : SingleChildScrollView(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 10,
-                      children: [for (final tag in tags) _TagChip(text: tag)],
-                    ),
-                  ),
+                : _StickerTags(tags: tags),
           ),
         ],
       ),
@@ -296,29 +291,144 @@ class _NotEnoughTags extends StatelessWidget {
   }
 }
 
-/// 태그 한 개: 연한 살구색 배경 + 주황 테두리
-class _TagChip extends StatelessWidget {
-  const _TagChip({required this.text});
+/// 태그를 스티커처럼 붙여 보여줘요. (이슈 #47)
+/// - 첫 번째 태그: 가운데에 크게 (대표 취향)
+/// - 나머지 4개: 네 귀퉁이에 작게, 큰 태그와 살짝 겹치게
+/// - 태그마다 정해진 각도로 기울여요. (열 때마다 바뀌지 않아요)
+/// - 글자가 길면 칸을 넘치지 않게 글자 크기를 줄여요.
+class _StickerTags extends StatelessWidget {
+  const _StickerTags({required this.tags});
 
-  final String text;
+  final List<String> tags;
+
+  /// 귀퉁이 스티커 자리: 위치(Alignment), 기울기(도), 색
+  /// Alignment는 -1(왼쪽·위) ~ 1(오른쪽·아래). 끝까지 붙이지 않아서 큰 태그와 겹쳐요.
+  static const _corners = [
+    (Alignment(-0.8, -0.6), -8.0, _StickerColor.peach), // 왼쪽 위
+    (Alignment(0.8, -0.65), 7.0, _StickerColor.outline), // 오른쪽 위
+    (Alignment(-0.75, 0.6), 6.0, _StickerColor.apricot), // 왼쪽 아래
+    (Alignment(0.8, 0.65), -5.0, _StickerColor.peach), // 오른쪽 아래
+  ];
+
+  /// 큰 태그 기울기
+  static const _mainAngle = -4.0;
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        return Stack(
+          children: [
+            // 귀퉁이 작은 태그 먼저 그리고,
+            for (var i = 1; i < tags.length && i <= _corners.length; i++)
+              _sticker(
+                alignment: _corners[i - 1].$1,
+                angle: _corners[i - 1].$2,
+                maxWidth: width * 0.46,
+                child: _TagChip(text: tags[i], color: _corners[i - 1].$3),
+              ),
+            // 큰 태그는 맨 위에 그려서 글자가 가려지지 않게 해요.
+            _sticker(
+              alignment: Alignment.center,
+              angle: _mainAngle,
+              maxWidth: width * 0.58,
+              child: _TagChip(
+                text: tags.first,
+                color: _StickerColor.accent,
+                isMain: true,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _sticker({
+    required Alignment alignment,
+    required double angle,
+    required double maxWidth,
+    required Widget child,
+  }) {
+    return Align(
+      alignment: alignment,
+      child: Transform.rotate(
+        angle: angle * math.pi / 180,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          // 너무 길면 글자를 줄여서 칸 안에 맞춰요. (짧으면 그대로)
+          child: FittedBox(fit: BoxFit.scaleDown, child: child),
+        ),
+      ),
+    );
+  }
+}
+
+/// 스티커 색 4가지 (기존 공유 팝업 색)
+enum _StickerColor {
+  /// 연한 살구색 + 주황 테두리
+  peach(
+    _ShareColors.chipBackground,
+    _ShareColors.accent,
+    _ShareColors.chipText,
+  ),
+
+  /// 주황색 + 흰 글자 (큰 태그)
+  accent(_ShareColors.accent, _ShareColors.accent, AppColors.white),
+
+  /// 흰색 + 주황 테두리
+  outline(AppColors.white, _ShareColors.accent, _ShareColors.chipText),
+
+  /// 진한 살구색
+  apricot(
+    _ShareColors.gradientTop,
+    _ShareColors.gradientTop,
+    _ShareColors.chipTextDark,
+  );
+
+  const _StickerColor(this.background, this.border, this.text);
+
+  final Color background;
+  final Color border;
+  final Color text;
+}
+
+/// 태그 스티커 한 개
+class _TagChip extends StatelessWidget {
+  const _TagChip({
+    required this.text,
+    required this.color,
+    this.isMain = false,
+  });
+
+  final String text;
+  final _StickerColor color;
+
+  /// 큰 태그(대표 취향)면 글자와 여백이 커요.
+  final bool isMain;
+
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = isMain ? 22.0 : 15.0;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      padding: isMain
+          ? const EdgeInsets.symmetric(horizontal: 22, vertical: 10)
+          : const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
-        color: _ShareColors.chipBackground,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _ShareColors.accent),
+        color: color.background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.border, width: 1.5),
       ),
       child: Text(
         '#$text',
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 17,
-          letterSpacing: -0.425,
-          color: AppColors.textPrimary,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.w500,
+          letterSpacing: fontSize * -0.025,
+          color: color.text,
         ),
       ),
     );
@@ -446,6 +556,12 @@ abstract final class _ShareColors {
   static const previewBackground = Color(0x66FBE3D3);
   static const chipBackground = Color(0xFFFCE9DE);
   static const accent = Color(0xFFF08A4B);
+
+  /// 살구색·흰색 스티커 글자 (진한 주황)
+  static const chipText = Color(0xFF9A4A1E);
+
+  /// 진한 살구색 스티커 글자 (갈색)
+  static const chipTextDark = Color(0xFF5C2A0E);
   static const icon = Color(0xFF6A6763);
   static const linkIconBackground = Color(0xFFF5F5F5);
 }
