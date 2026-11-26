@@ -207,18 +207,6 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     }
 
     try {
-      await ref
-          .read(itemUploadProvider.notifier)
-          .submit(
-            furnitureTypeId: furnitureTypeId,
-            memo: _memoController.text.trim(),
-            visibility: _isPublic ? 'PUBLIC' : 'PRIVATE',
-          );
-
-      if (!mounted) return;
-
-      _showMessage('사진이 기록되었습니다.');
-      context.pop();
       final success = await ref
           .read(itemUploadProvider.notifier)
           .submit(
@@ -230,7 +218,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       if (!mounted) return;
 
       if (!success) {
-        _showMessage('AI 분석이 완료된 후 기록할 수 있습니다.');
+        _showMessage('기록에 실패했습니다. 다시 시도해 주세요.');
         return;
       }
 
