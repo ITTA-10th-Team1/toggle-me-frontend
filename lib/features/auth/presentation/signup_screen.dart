@@ -18,7 +18,7 @@ import 'widgets/signup_style.dart';
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key, this.service});
 
-  /// 테스트에서 가짜 서비스를 넣을 수 있어요. 없으면 FakeSignupService.
+  /// 테스트에서 가짜 서비스를 넣을 수 있어요. 없으면 실제 서버(ApiSignupService).
   final SignupService? service;
 
   @override
@@ -26,9 +26,7 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  // TODO(api): 회원가입 API가 나오면 실제 서비스로 교체
-  late final SignupService _service =
-      widget.service ?? const FakeSignupService();
+  late final SignupService _service = widget.service ?? ApiSignupService();
 
   int _step = 0;
   SignupProfile? _profile;

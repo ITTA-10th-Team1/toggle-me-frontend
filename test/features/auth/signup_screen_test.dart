@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:toggle_me/app/router/app_routes.dart';
+import 'package:toggle_me/features/auth/data/models/auth_error_code.dart';
 import 'package:toggle_me/features/auth/data/models/signup_request.dart';
 import 'package:toggle_me/features/auth/data/signup_service.dart';
 import 'package:toggle_me/features/auth/presentation/signup_screen.dart';
@@ -17,6 +18,34 @@ class _RecordingService extends FakeSignupService {
 
   @override
   Future<void> signup(SignupRequest request) async => signedUp = request;
+}
+
+/// 서버 응답을 정해 둘 수 있는 가짜 서비스 (실제 API처럼 오류를 던져요)
+class _ScriptedService extends FakeSignupService {
+  _ScriptedService({
+    this.idCheck = LoginIdCheck.available,
+    this.requestError,
+    this.signupError,
+  }) : super(delay: Duration.zero);
+
+  final LoginIdCheck idCheck;
+  final AuthException? requestError;
+  AuthException? signupError;
+  int signupCalls = 0;
+
+  @override
+  Future<LoginIdCheck> checkLoginId(String loginId) async => idCheck;
+
+  @override
+  Future<void> requestEmailCode(String email) async {
+    if (requestError != null) throw requestError!;
+  }
+
+  @override
+  Future<void> signup(SignupRequest request) async {
+    signupCalls++;
+    if (signupError != null) throw signupError!;
+  }
 }
 
 /// 화면 전체가 스크롤 없이 보이도록 세로로 긴 화면에서 회원가입 화면을 띄워요.
@@ -80,6 +109,24 @@ Future<void> _goToAccountStep(WidgetTester tester) async {
   await tester.pump();
   await tester.tap(find.text('다음'));
   await tester.pumpAndSettle();
+}
+
+/// 2단계를 모두 채우고 이메일 인증까지 마쳐요.
+Future<void> _fillAccountStep(WidgetTester tester) async {
+  await tester.enterText(_field(0), 'hello1');
+  await tester.pump();
+  await tester.tap(find.text('중복확인'));
+  await tester.pumpAndSettle();
+  await tester.enterText(_field(1), 'abcd123!');
+  await tester.enterText(_field(2), 'abcd123!');
+  await tester.enterText(_field(3), 'me@toggle.com');
+  await tester.pump();
+  await tester.tap(find.text('인증요청'));
+  await _waitForService(tester);
+  await tester.enterText(_field(4), FakeSignupService.validCode);
+  await tester.pump();
+  await tester.tap(find.text('확인'));
+  await _waitForService(tester);
 }
 
 void main() {
@@ -376,7 +423,86 @@ void main() {
       expect(request.account.loginId, 'hello1');
       expect(request.account.password, 'abcd123!');
       expect(request.account.email, 'me@toggle.com');
+      expect(request.account.emailVerificationToken, 'fake-verification-token');
       expect(find.text('login-target'), findsOneWidget);
+    });
+  });
+
+  group('서버 오류 처리', () {
+    testWidgets('중복확인 API가 없으면 형식만 확인하고 가입할 수 있다', (tester) async {
+      final service = _ScriptedService(idCheck: LoginIdCheck.formatOnly);
+      await _pumpSignup(tester, service);
+      await _goToAccountStep(tester);
+      await _fillAccountStep(tester);
+
+      expect(find.text('사용할 수 있는 형식이에요. 중복 여부는 가입할 때 확인해요.'), findsOneWidget);
+      expect(_enabled(tester, '가입 완료하기'), isTrue);
+    });
+
+    testWidgets('가입할 때 409 아이디 중복이면 아이디 칸 아래에 알려준다', (tester) async {
+      final service = _ScriptedService(
+        idCheck: LoginIdCheck.formatOnly,
+        signupError: const AuthException(
+          AuthErrorCode.loginIdAlreadyExists,
+          '이미 사용 중인 아이디입니다.',
+        ),
+      );
+      await _pumpSignup(tester, service);
+      await _goToAccountStep(tester);
+      await _fillAccountStep(tester);
+
+      await tester.tap(find.text('가입 완료하기'));
+      await _waitForService(tester);
+
+      expect(find.text('이미 사용 중인 아이디예요.'), findsOneWidget);
+      expect(find.text('login-target'), findsNothing); // 화면에 남아 있음
+      expect(_enabled(tester, '가입 완료하기'), isFalse);
+
+      // 아이디를 고치면 다시 확인하고 가입할 수 있어요. (이메일 인증은 유지)
+      service.signupError = null;
+      await tester.enterText(_field(0), 'hello2');
+      await tester.pump();
+      await tester.tap(find.text('중복확인'));
+      await tester.pumpAndSettle();
+      expect(_enabled(tester, '가입 완료하기'), isTrue);
+    });
+
+    testWidgets('가입 토큰이 만료되면 이메일 인증을 처음부터 다시 한다', (tester) async {
+      final service = _ScriptedService(
+        signupError: const AuthException(
+          AuthErrorCode.emailVerificationRequired,
+          '이메일 인증이 필요합니다.',
+        ),
+      );
+      await _pumpSignup(tester, service);
+      await _goToAccountStep(tester);
+      await _fillAccountStep(tester);
+
+      await tester.tap(find.text('가입 완료하기'));
+      await _waitForService(tester);
+
+      expect(find.text('이메일 인증을 다시 진행해 주세요.'), findsOneWidget);
+      expect(_enabled(tester, '인증요청'), isTrue);
+      expect(_enabled(tester, '가입 완료하기'), isFalse);
+    });
+
+    testWidgets('인증요청이 실패하면 서버 문장을 이메일 칸 아래에 보여준다', (tester) async {
+      final service = _ScriptedService(
+        requestError: const AuthException(
+          AuthErrorCode.emailAlreadyExists,
+          '이미 사용 중인 이메일입니다.',
+        ),
+      );
+      await _pumpSignup(tester, service);
+      await _goToAccountStep(tester);
+
+      await tester.enterText(_field(3), 'me@toggle.com');
+      await tester.pump();
+      await tester.tap(find.text('인증요청'));
+      await _waitForService(tester);
+
+      expect(find.text('이미 사용 중인 이메일입니다.'), findsOneWidget);
+      expect(find.text('03:00'), findsNothing); // 타이머 시작 안 함
     });
   });
 }

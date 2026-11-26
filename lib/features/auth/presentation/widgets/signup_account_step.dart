@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/widgets/app_notice.dart';
+import '../../data/models/auth_error_code.dart';
 import '../../data/models/signup_request.dart';
 import '../../data/signup_service.dart';
 import 'primary_button.dart';
@@ -52,12 +53,14 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
 
   /// 중복확인한 아이디. 아이디를 고치면 다시 확인해야 해요.
   String? _checkedId;
-  bool? _idAvailable; // null = 아직 확인 안 함
+  LoginIdCheck? _idCheck; // null = 아직 확인 안 함
 
   // 이메일 인증
   bool _sendingCode = false;
   bool _verifying = false;
-  bool _emailVerified = false;
+
+  /// 인증에 성공하면 받는 가입용 토큰. 있으면 인증 완료예요.
+  String? _verificationToken;
 
   /// 인증번호를 보낸 이메일. 이메일을 고치면 인증을 처음부터 다시 해요.
   String? _sentEmail;
@@ -80,9 +83,14 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
   bool get _emailValid => _emailPattern.hasMatch(_email);
   bool get _codeSent => _sentEmail != null;
   bool get _timeLeft => _remaining > Duration.zero;
+  bool get _emailVerified => _verificationToken != null;
+
+  /// 중복확인을 통과했는지 (서버에 확인 API가 없으면 형식 확인만으로 통과)
+  bool get _idChecked =>
+      _idCheck == LoginIdCheck.available || _idCheck == LoginIdCheck.formatOnly;
 
   bool get _canSubmit =>
-      _idAvailable == true &&
+      _idChecked &&
       _passwordValid &&
       _passwordMatches &&
       _emailVerified &&
@@ -126,7 +134,7 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
     setState(() {
       if (_id != _checkedId) {
         _checkedId = null;
-        _idAvailable = null;
+        _idCheck = null;
       }
     });
   }
@@ -135,14 +143,14 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
     final id = _id;
     setState(() => _checkingId = true);
     try {
-      final available = await widget.service.isLoginIdAvailable(id);
+      final result = await widget.service.checkLoginId(id);
       if (!mounted || id != _id) return; // 기다리는 동안 아이디를 고쳤으면 무시
       setState(() {
         _checkedId = id;
-        _idAvailable = available;
+        _idCheck = result;
       });
-    } catch (_) {
-      _showError();
+    } catch (e) {
+      _showError(e);
     } finally {
       if (mounted) setState(() => _checkingId = false);
     }
@@ -159,7 +167,7 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
   void _resetEmailVerification() {
     _timer?.cancel();
     _sentEmail = null;
-    _emailVerified = false;
+    _verificationToken = null;
     _remaining = Duration.zero;
     _emailMessage = null;
     _codeController.clear();
@@ -178,8 +186,15 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
         _startTimer();
       });
       showAppNotice(context, '인증번호를 보냈어요.');
-    } catch (_) {
-      _showError();
+    } on AuthException catch (e) {
+      // 이미 가입된 이메일, 너무 자주 요청함 등은 이메일 칸 아래에 서버 문장을 보여줘요.
+      if (_isServerError(e)) {
+        setState(() => _setEmailMessage(e.message, SignupStyle.error));
+      } else {
+        _showError(e);
+      }
+    } catch (e) {
+      _showError(e);
     } finally {
       if (mounted) setState(() => _sendingCode = false);
     }
@@ -204,24 +219,25 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
     FocusScope.of(context).unfocus();
     setState(() => _verifying = true);
     try {
-      final ok = await widget.service.verifyEmailCode(
+      final token = await widget.service.verifyEmailCode(
         email: _sentEmail!,
         code: _codeController.text,
       );
       if (!mounted) return;
       setState(() {
-        if (ok) {
-          _emailVerified = true;
-          _timer?.cancel();
-          _emailMessage = '이메일 인증이 완료됐어요.';
-          _emailMessageColor = SignupStyle.success;
-        } else {
-          _emailMessage = '인증번호가 올바르지 않아요.';
-          _emailMessageColor = SignupStyle.error;
-        }
+        _verificationToken = token;
+        _timer?.cancel();
+        _setEmailMessage('이메일 인증이 완료됐어요.', SignupStyle.success);
       });
-    } catch (_) {
-      _showError();
+    } on AuthException catch (e) {
+      // 번호 틀림, 만료, 5번 틀림 등은 서버 문장을 그대로 보여줘요.
+      if (_isServerError(e)) {
+        setState(() => _setEmailMessage(e.message, SignupStyle.error));
+      } else {
+        _showError(e);
+      }
+    } catch (e) {
+      _showError(e);
     } finally {
       if (mounted) setState(() => _verifying = false);
     }
@@ -234,19 +250,69 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
     setState(() => _submitting = true);
     try {
       await widget.onSubmit(
-        SignupAccount(loginId: _id, password: _password, email: _sentEmail!),
+        SignupAccount(
+          loginId: _id,
+          password: _password,
+          email: _sentEmail!,
+          emailVerificationToken: _verificationToken!,
+        ),
       );
-    } catch (_) {
-      _showError();
+    } on AuthException catch (e) {
+      _onSignupFailed(e);
+    } catch (e) {
+      _showError(e);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
 
-  void _showError() {
+  /// 가입 실패: 어느 칸 문제인지에 따라 그 칸 아래에 안내해요.
+  void _onSignupFailed(AuthException e) {
     if (!mounted) return;
-    // TODO(api): API가 나오면 서버 오류 메시지(message)를 그대로 보여주기
-    showAppNotice(context, '잠시 후 다시 시도해 주세요.');
+    switch (e.code) {
+      case AuthErrorCode.loginIdAlreadyExists:
+        // 중복확인 API가 없어서 가입할 때 처음 알게 될 수 있어요.
+        setState(() {
+          _checkedId = _id;
+          _idCheck = LoginIdCheck.taken;
+        });
+      case AuthErrorCode.emailAlreadyExists:
+        setState(() {
+          _resetEmailVerification();
+          _setEmailMessage(e.message, SignupStyle.error);
+        });
+      case AuthErrorCode.emailVerificationRequired:
+        // 토큰 만료(30분) 등: 이메일 인증을 처음부터 다시 해요.
+        setState(() {
+          _resetEmailVerification();
+          _setEmailMessage('이메일 인증을 다시 진행해 주세요.', SignupStyle.error);
+        });
+      default:
+        _showError(e);
+    }
+  }
+
+  void _setEmailMessage(String message, Color color) {
+    _emailMessage = message;
+    _emailMessageColor = color;
+  }
+
+  /// 서버가 이유를 알려준 오류인지 (네트워크 끊김·알 수 없는 오류가 아님)
+  bool _isServerError(AuthException e) => !const {
+    AuthErrorCode.networkError,
+    AuthErrorCode.apiBaseUrlMissing,
+    AuthErrorCode.unknown,
+  }.contains(e.code);
+
+  /// 화면 아래 안내(스낵바)로 오류를 보여줘요.
+  void _showError(Object error) {
+    if (!mounted) return;
+    final message =
+        error is AuthException && error.code != AuthErrorCode.unknown
+        ? error
+              .message // 서버 문장, '네트워크 연결을 확인해 주세요.' 등
+        : '잠시 후 다시 시도해 주세요.';
+    showAppNotice(context, message);
   }
 
   // ───────── 화면 ─────────
@@ -293,9 +359,13 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
   }
 
   List<Widget> _buildIdSection() {
-    final (String text, Color? color) = switch (_idAvailable) {
-      true => ('사용할 수 있는 아이디예요.', SignupStyle.success),
-      false => ('이미 사용 중인 아이디예요.', SignupStyle.error),
+    final (String text, Color? color) = switch (_idCheck) {
+      LoginIdCheck.available => ('사용할 수 있는 아이디예요.', SignupStyle.success),
+      LoginIdCheck.formatOnly => (
+        '사용할 수 있는 형식이에요. 중복 여부는 가입할 때 확인해요.',
+        SignupStyle.success,
+      ),
+      LoginIdCheck.taken => ('이미 사용 중인 아이디예요.', SignupStyle.error),
       null => (
         '영문 소문자, 숫자 조합 4~12자',
         _id.isNotEmpty && !_idValid ? SignupStyle.error : null,
@@ -317,7 +387,7 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
         trailing: SignupInlineButton(
           label: '중복확인',
           isLoading: _checkingId,
-          onPressed: _idValid && _idAvailable == null ? _checkId : null,
+          onPressed: _idValid && _idCheck == null ? _checkId : null,
         ),
       ),
       const SizedBox(height: SignupStyle.fieldToHelper),
