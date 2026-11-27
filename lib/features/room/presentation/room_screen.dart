@@ -311,6 +311,7 @@ class _RoomScreenState extends State<RoomScreen> {
                           if (kIsWeb)
                             RoomWebView(
                               key: ValueKey('web-room-$_attempt'),
+                              interactive: _modelLoaded,
                               bridge: widget.furniture == null
                                   ? roomSceneBridge
                                   : roomSceneBridgeFor(widget.furniture!),
