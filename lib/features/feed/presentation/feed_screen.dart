@@ -381,6 +381,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               height: double.infinity,
               child: Image.network(
                 item.imageUrl,
+                webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(

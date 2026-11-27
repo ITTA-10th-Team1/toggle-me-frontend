@@ -22,6 +22,7 @@ class ProfileAvatar extends StatelessWidget {
             ? _defaultImage()
             : Image.network(
                 url,
+                webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
                 fit: BoxFit.cover,
                 // 불러오는 동안에도 기본 이미지를 보여줘요.
                 loadingBuilder: (context, child, progress) =>
