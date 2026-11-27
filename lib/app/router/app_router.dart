@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/widgets/app_notice.dart';
 import '../../core/widgets/dev_placeholder_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/data/models/onboarding_step.dart';
 import '../../features/item/presentation/item_upload_screen.dart';
 import '../../features/onboarding/presentation/guest_intro_screen.dart';
@@ -54,10 +55,7 @@ final GoRouter appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.signup,
-      builder: (context, state) => const DevPlaceholderScreen(
-        title: '회원가입',
-        description: '회원가입 화면 준비 중',
-      ),
+      builder: (context, state) => const SignupScreen(),
     ),
 
     // 실제 메인 3D 방 화면

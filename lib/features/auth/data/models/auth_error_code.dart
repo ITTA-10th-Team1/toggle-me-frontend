@@ -19,6 +19,34 @@ class AuthErrorCode {
   /// 401: Refresh Token이 없음·만료·폐기·이미 사용됨
   static const invalidRefreshToken = 'INVALID_REFRESH_TOKEN';
 
+  // ───────── 회원가입·이메일 인증 (PR #81) ─────────
+
+  /// 409: 이미 사용 중인 아이디 (가입할 때)
+  static const loginIdAlreadyExists = 'LOGIN_ID_ALREADY_EXISTS';
+
+  /// 409: 이미 가입된 이메일 (코드 발송·가입할 때)
+  static const emailAlreadyExists = 'EMAIL_ALREADY_EXISTS';
+
+  /// 400: 가입 토큰이 틀림·만료·이미 사용됨 → 이메일 인증 처음부터
+  static const emailVerificationRequired = 'EMAIL_VERIFICATION_REQUIRED';
+
+  /// 400: 인증번호가 틀림 (요청한 적 없는 이메일, 이미 확인한 코드도 같아요)
+  static const emailVerificationCodeInvalid = 'EMAIL_VERIFICATION_CODE_INVALID';
+
+  /// 400: 인증번호 유효시간(10분) 지남 → 재요청
+  static const emailVerificationCodeExpired = 'EMAIL_VERIFICATION_CODE_EXPIRED';
+
+  /// 429: 60초 안 재요청 또는 시간당 5회 초과
+  static const emailVerificationTooManyRequests =
+      'EMAIL_VERIFICATION_TOO_MANY_REQUESTS';
+
+  /// 429: 인증번호 5번 틀림 → 재요청
+  static const emailVerificationTooManyAttempts =
+      'EMAIL_VERIFICATION_TOO_MANY_ATTEMPTS';
+
+  /// 502: 메일 발송 실패, 바로 재요청 가능
+  static const emailSendFailed = 'EMAIL_SEND_FAILED';
+
   // ───────── 앱에서만 쓰는 code (서버가 보내는 값 아님) ─────────
 
   /// 서버 응답 없음, 시간 초과, 인터넷 끊김

@@ -38,12 +38,7 @@ class AuthApiClient {
     String path,
     Map<String, dynamic> body,
   ) async {
-    if (_dio.options.baseUrl.isEmpty) {
-      throw const AuthException(
-        AuthErrorCode.apiBaseUrlMissing,
-        '서버 주소가 설정되지 않았어요. dart_defines.json을 확인해 주세요.',
-      );
-    }
+    _ensureBaseUrl();
 
     try {
       final response = await _dio.post<Map<String, dynamic>>(path, data: body);
@@ -54,6 +49,30 @@ class AuthApiClient {
       return data;
     } on DioException catch (e) {
       throw authExceptionFromDio(e);
+    }
+  }
+
+  /// 응답 본문이 없는 API(204 No Content)에 POST 요청을 보내요.
+  /// 예: 이메일 인증 코드 발송. 실패하면 [AuthException]을 던져요.
+  Future<void> postWithoutResponse(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    _ensureBaseUrl();
+
+    try {
+      await _dio.post<void>(path, data: body);
+    } on DioException catch (e) {
+      throw authExceptionFromDio(e);
+    }
+  }
+
+  void _ensureBaseUrl() {
+    if (_dio.options.baseUrl.isEmpty) {
+      throw const AuthException(
+        AuthErrorCode.apiBaseUrlMissing,
+        '서버 주소가 설정되지 않았어요. dart_defines.json을 확인해 주세요.',
+      );
     }
   }
 }
