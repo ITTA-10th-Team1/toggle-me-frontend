@@ -33,18 +33,26 @@ class ImageAnalysisResult {
 }
 
 class ImageAnalysisStatus {
-  const ImageAnalysisStatus({required this.status, this.tags = const []});
+  const ImageAnalysisStatus({
+    required this.status,
+    this.tags = const [],
+    this.searchQueries = const [],
+  });
 
   final String status;
   final List<String> tags;
+  final List<String> searchQueries;
 
   factory ImageAnalysisStatus.fromJson(Map<String, dynamic> json) {
     final result = json['result'] as Map<String, dynamic>?;
+
     final rawTags = result?['tags'] as List<dynamic>? ?? [];
+    final rawSearchQueries = result?['searchQueries'] as List<dynamic>? ?? [];
 
     return ImageAnalysisStatus(
       status: json['status'] as String? ?? 'FAILED',
       tags: rawTags.map((tag) => tag.toString()).toList(),
+      searchQueries: rawSearchQueries.map((query) => query.toString()).toList(),
     );
   }
 }

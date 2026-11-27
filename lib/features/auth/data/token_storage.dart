@@ -29,4 +29,9 @@ class TokenStorage {
   Future<String?> getRefreshToken() async {
     return _storage.read(key: refreshTokenKey);
   }
+
+  Future<void> clearTokens() async {
+    await _storage.delete(key: accessTokenKey);
+    await _storage.delete(key: refreshTokenKey);
+  }
 }

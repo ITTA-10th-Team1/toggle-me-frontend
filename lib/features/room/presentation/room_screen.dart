@@ -12,8 +12,12 @@ import 'room_lighting_config.dart';
 import 'room_bottom_bar.dart';
 import 'room_mood_hashtags.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../core/widgets/room_mode_toggle.dart';
 import '../domain/room_visibility.dart';
+import '../domain/room_data.dart';
+import '../../guide/presentation/guide_book_icon.dart';
+import 'room_action_icon.dart';
 
 /// 중간 발표용 방: 거울·냉장고 고정 배치, 고정 카메라와 가구 터치.
 /// 나머지 세 가구는 미배치 상태로 표시합니다.
@@ -22,27 +26,31 @@ class RoomScreen extends StatefulWidget {
     super.key,
     this.onProfile,
     this.onLogout,
-    this.onNotifications,
+    this.onGuide,
     this.onRecord,
     this.onGuestbook,
     this.onShop,
     this.onMood,
-    this.onFriends,
+    this.onShare,
+    this.onEdit,
     this.onCategory,
     this.onFurnitureTap,
     this.moodHashtags = const [],
     this.initialVisibility = RoomVisibility.socialOn,
     this.onVisibilityChanged,
+    this.furniture,
   });
 
   final VoidCallback? onProfile;
+  final List<RoomFurniture>? furniture;
   final VoidCallback? onLogout;
-  final VoidCallback? onNotifications;
+  final VoidCallback? onGuide;
   final VoidCallback? onRecord;
   final VoidCallback? onGuestbook;
   final VoidCallback? onShop;
   final VoidCallback? onMood;
-  final VoidCallback? onFriends;
+  final VoidCallback? onShare;
+  final VoidCallback? onEdit;
   final ValueChanged<String>? onCategory;
 
   /// Pinboard integration callback. Stable IDs: mirror, fridge.
@@ -65,7 +73,6 @@ class _RoomScreenState extends State<RoomScreen> {
   late bool _isPublic;
   bool _savingVisibility = false;
   int _visibilityGeneration = 0;
-  final bool _hasNewNotifications = false; // TODO: 알림 API 연결
 
   bool _modelLoaded = false;
   bool _modelFailed = false;
@@ -130,6 +137,7 @@ class _RoomScreenState extends State<RoomScreen> {
   }
 
   void _openFurniture(String id) {
+    if (!_isPlaced(id)) return;
     if (id != 'mirror' && id != 'fridge') return;
     if (widget.onFurnitureTap != null) {
       widget.onFurnitureTap!(id);
@@ -140,7 +148,9 @@ class _RoomScreenState extends State<RoomScreen> {
     }
   }
 
-  bool _isPlaced(String id) => id == 'mirror' || id == 'fridge';
+  bool _isPlaced(String id) => widget.furniture == null
+      ? id == 'mirror' || id == 'fridge'
+      : widget.furniture!.any((e) => e.code == id && !e.hidden);
 
   void _showFurnitureDetails((String, String) category) {
     final placed = _isPlaced(category.$2);
@@ -157,13 +167,7 @@ class _RoomScreenState extends State<RoomScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      category.$1,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: Text(category.$1, style: AppTextStyles.head2),
                   ),
                   IconButton(
                     tooltip: '닫기',
@@ -181,7 +185,7 @@ class _RoomScreenState extends State<RoomScreen> {
                     Navigator.pop(sheetContext);
                     _openFurniture(category.$2);
                   },
-                  child: const Text('핀보드 보기'),
+                  child: const Text('기록 보기'),
                 ),
             ],
           ),
@@ -191,15 +195,6 @@ class _RoomScreenState extends State<RoomScreen> {
   }
 
   static const _background = AppColors.roomBackground;
-  static const _ivory = AppColors.surfaceMuted;
-  static const _categories = [
-    ('화장대', 'vanity'),
-    ('거울', 'mirror'),
-    ('TV', 'tv'),
-    ('책상', 'desk'),
-    ('냉장고', 'fridge'),
-  ];
-
   Widget _svg(String name, {double? width, double? height}) => name == 'profile'
       ? ClipOval(
           child: Image.asset(
@@ -261,18 +256,12 @@ class _RoomScreenState extends State<RoomScreen> {
                         ),
                         const SizedBox(width: 6),
                         IconButton(
-                          tooltip: '알림',
+                          tooltip: '이용가이드',
                           style: IconButton.styleFrom(
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          onPressed: widget.onNotifications,
-                          icon: _svg(
-                            _hasNewNotifications
-                                ? 'notification_new'
-                                : 'notification',
-                            width: 46,
-                            height: 46,
-                          ),
+                          onPressed: widget.onGuide,
+                          icon: const GuideBookIcon(),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
                             minWidth: 46,
@@ -292,6 +281,24 @@ class _RoomScreenState extends State<RoomScreen> {
                   ),
                   const SizedBox(height: 22),
                   RoomMoodHashtags(tags: widget.moodHashtags),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 20, top: 14),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        tooltip: '방 편집',
+                        onPressed:
+                            widget.onEdit ??
+                            () => showAppNotice(context, '방 편집 기능은 준비 중이에요.'),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 46,
+                          height: 46,
+                        ),
+                        icon: const RoomActionIcon(edit: true),
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -299,7 +306,7 @@ class _RoomScreenState extends State<RoomScreen> {
                         alignment: Alignment.center,
                         children: [
                           ModelViewer(
-                            key: ValueKey('demo-room-v11-$_attempt'),
+                            key: ValueKey('demo-room-v12-$_attempt'),
                             src: 'assets/models/toggleme_room.glb',
                             alt: '나의 3D 방',
                             backgroundColor: _background,
@@ -342,7 +349,9 @@ class _RoomScreenState extends State<RoomScreen> {
                                 },
                               ),
                             },
-                            relatedJs: roomSceneBridge,
+                            relatedJs: widget.furniture == null
+                                ? roomSceneBridge
+                                : roomSceneBridgeFor(widget.furniture!),
                           ),
                           if (!_modelLoaded)
                             Container(
@@ -381,93 +390,6 @@ class _RoomScreenState extends State<RoomScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(
-                    height: 98,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 4,
-                      ),
-                      itemCount: _categories.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 5),
-                      itemBuilder: (context, index) {
-                        final category = _categories[index];
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => _showFurnitureDetails(category),
-                          child: Container(
-                            width: 90,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(color: _ivory),
-                              boxShadow: const [
-                                BoxShadow(color: _ivory, blurRadius: 4),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Semantics(
-                                  label:
-                                      '${category.$1}, ${_isPlaced(category.$2) ? '배치됨' : '미배치'}',
-                                  image: true,
-                                  child: _isPlaced(category.$2)
-                                      ? Image.asset(
-                                          'assets/room/raster/${category.$2}_color.png',
-                                          width: 56,
-                                          height: 56,
-                                          fit: BoxFit.contain,
-                                        )
-                                      : ColorFiltered(
-                                          colorFilter: const ColorFilter.matrix(
-                                            [
-                                              0.2126,
-                                              0.7152,
-                                              0.0722,
-                                              0,
-                                              0,
-                                              0.2126,
-                                              0.7152,
-                                              0.0722,
-                                              0,
-                                              0,
-                                              0.2126,
-                                              0.7152,
-                                              0.0722,
-                                              0,
-                                              0,
-                                              0,
-                                              0,
-                                              0,
-                                              1,
-                                              0,
-                                            ],
-                                          ),
-                                          child: Opacity(
-                                            opacity: 0.45,
-                                            child: Image.asset(
-                                              'assets/room/raster/${category.$2}.png',
-                                              width: 56,
-                                              height: 56,
-                                              fit: BoxFit.contain,
-                                            ),
-                                          ),
-                                        ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  category.$1,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
                     child: RoomBottomBar(
@@ -475,7 +397,9 @@ class _RoomScreenState extends State<RoomScreen> {
                       onGuestbook: widget.onGuestbook,
                       onShop: widget.onShop,
                       onMood: widget.onMood,
-                      onFriends: widget.onFriends,
+                      onShare:
+                          widget.onShare ??
+                          () => showAppNotice(context, '공유 기능은 준비 중이에요.'),
                     ),
                   ),
                 ],

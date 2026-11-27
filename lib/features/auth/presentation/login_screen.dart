@@ -17,9 +17,10 @@ import 'widgets/primary_button.dart';
 import 'widgets/social_login_button.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.authService});
+  const LoginScreen({super.key, this.authService, this.onAuthenticated});
 
   final AuthService? authService;
+  final ValueChanged<LoginResponse>? onAuthenticated;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -125,6 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
   /// 로그인 성공 후 다음 화면으로 이동
   void _goNextScreen(LoginResponse response) {
     if (!mounted) return;
+    if (widget.onAuthenticated != null) {
+      widget.onAuthenticated!(response);
+      return;
+    }
     // Completed accounts can enter the main room without replacing the
     // login team's authentication or onboarding state model.
     if (response.onboardingStep == OnboardingStep.done) {

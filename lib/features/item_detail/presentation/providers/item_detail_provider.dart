@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../item/presentation/providers/item_upload_provider.dart';
 import '../../data/item_detail_model.dart';
 import '../../data/item_detail_repository.dart';
-
-import 'package:flutter/foundation.dart';
+import '../../../item/data/item_recommendation_storage.dart';
 
 final itemDetailRepositoryProvider = Provider<ItemDetailRepository>((ref) {
   return ItemDetailRepository(ref.watch(apiClientProvider));
@@ -17,6 +17,7 @@ class ItemDetailState {
     this.isDeleting = false,
     this.errorMessage,
     this.recommendations = const [],
+    this.searchQueries = const [],
     this.isLoadingRecommendations = false,
     this.recommendationError,
     this.hasLoadedRecommendations = false,
@@ -30,6 +31,7 @@ class ItemDetailState {
   final String? errorMessage;
 
   final List<ItemRecommendationModel> recommendations;
+  final List<String> searchQueries;
   final bool isLoadingRecommendations;
   final String? recommendationError;
   final bool hasLoadedRecommendations;
@@ -44,6 +46,7 @@ class ItemDetailState {
     bool clearItem = false,
     bool clearError = false,
     List<ItemRecommendationModel>? recommendations,
+    List<String>? searchQueries,
     bool? isLoadingRecommendations,
     String? recommendationError,
     bool clearRecommendationError = false,
@@ -57,6 +60,7 @@ class ItemDetailState {
       isDeleting: isDeleting ?? this.isDeleting,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       recommendations: recommendations ?? this.recommendations,
+      searchQueries: searchQueries ?? this.searchQueries,
       isLoadingRecommendations:
           isLoadingRecommendations ?? this.isLoadingRecommendations,
       recommendationError: clearRecommendationError
@@ -95,7 +99,7 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
     ref.read(apiClientProvider).setAccessToken(token);
   }
 
-  /// 상세 화면 진입 시 최신 이미지 URL을 포함한 상세 정보를 다시 조회한다.
+  /// 상세 화면 진입 시 최신 이미지 URL을 포함한 상세 정보를 조회한다.
   Future<void> fetchDetail(int itemId) async {
     final requestId = ++_requestId;
     _recommendationRequestId++;
@@ -109,10 +113,34 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
       if (requestId != _requestId) return;
 
       state = ItemDetailState(item: item);
+
+      // 거울(furnitureTypeId: 1)의 검색어 불러오기
+      if (item.furnitureTypeId == 1) {
+        await fetchSearchQueries(itemId);
+      }
     } catch (e) {
       if (requestId != _requestId) return;
 
       state = ItemDetailState(errorMessage: e.toString());
+    }
+  }
+
+  /// 로컬에 저장된 거울 검색어 조회
+  Future<void> fetchSearchQueries(int itemId) async {
+    try {
+      final queries = await ItemRecommendationStorage().getSearchQueries(
+        itemId,
+      );
+
+      print('========== 검색어 조회 ==========');
+      print('아이템 ID: $itemId');
+      print('불러온 검색어: $queries');
+
+      if (state.item?.id != itemId) return;
+
+      state = state.copyWith(searchQueries: queries);
+    } catch (e) {
+      debugPrint('검색어 불러오기 실패: $e');
     }
   }
 
@@ -156,7 +184,7 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
     }
   }
 
-  /// 아이템 공개 여부를 변경한다.
+  /// 아이템 공개 여부 변경
   Future<bool> updateVisibility(int itemId, bool isPublic) async {
     if (state.isUpdatingVisibility ||
         state.isUpdatingMemo ||
@@ -177,7 +205,6 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
         isPublic ? 'PUBLIC' : 'PRIVATE',
       );
 
-      // 다른 아이템으로 이동했다면 이전 응답 무시
       if (requestId != _requestId || state.item?.id != itemId) {
         return false;
       }
@@ -199,7 +226,7 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
     }
   }
 
-  /// 아이템 메모를 수정한다.
+  /// 아이템 메모 수정
   Future<bool> updateMemo(int itemId, String memo) async {
     if (state.isUpdatingMemo ||
         state.isUpdatingVisibility ||
@@ -217,7 +244,6 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
 
       final updatedItem = await _repository.updateMemo(itemId, memo);
 
-      // 다른 아이템으로 이동했다면 이전 응답 무시
       if (requestId != _requestId || state.item?.id != itemId) {
         return false;
       }
@@ -236,13 +262,12 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
     }
   }
 
-  /// 삭제 성공 여부를 반환한다.
+  /// 삭제 성공 여부 반환
   Future<bool> deleteItem(int itemId) async {
     if (state.isDeleting || state.item?.id != itemId) {
       return false;
     }
 
-    // 삭제 요청 시작 시점의 요청 ID 저장
     final requestId = _requestId;
 
     state = state.copyWith(isDeleting: true, clearError: true);
@@ -251,19 +276,23 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
       await _ensureAccessToken();
       await _repository.deleteItem(itemId);
 
-      // 다른 아이템으로 이동했다면 이전 응답 무시
+      // 서버 삭제 성공 후 로컬 검색어 삭제
+      try {
+        await ItemRecommendationStorage().deleteSearchQueries(itemId);
+      } catch (e) {
+        debugPrint('로컬 검색어 삭제 실패: $e');
+      }
+
       if (requestId != _requestId || state.item?.id != itemId) {
         return true;
       }
 
-      // 진행 중인 상세 조회 및 추천 요청 무효화
       _requestId++;
       _recommendationRequestId++;
 
       state = const ItemDetailState();
       return true;
     } catch (e) {
-      // 다른 아이템으로 이동했다면 이전 오류도 무시
       if (requestId != _requestId || state.item?.id != itemId) {
         return false;
       }
