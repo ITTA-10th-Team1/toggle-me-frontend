@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -109,6 +111,16 @@ Future<void> _goToAccountStep(WidgetTester tester) async {
   await tester.pump();
   await tester.tap(find.text('다음'));
   await tester.pumpAndSettle();
+}
+
+/// 인증요청 응답을 테스트에서 원하는 때에 보내는 가짜 서비스
+class _PendingRequestService extends FakeSignupService {
+  _PendingRequestService() : super(delay: Duration.zero);
+
+  final request = Completer<void>();
+
+  @override
+  Future<void> requestEmailCode(String email) => request.future;
 }
 
 /// 2단계를 모두 채우고 이메일 인증까지 마쳐요.
@@ -503,6 +515,58 @@ void main() {
 
       expect(find.text('이미 사용 중인 이메일입니다.'), findsOneWidget);
       expect(find.text('03:00'), findsNothing); // 타이머 시작 안 함
+    });
+  });
+
+  group('리뷰 반영 (PR #46)', () {
+    bool emailFieldEnabled(WidgetTester tester) =>
+        tester.widget<TextField>(_field(3)).enabled ?? true;
+
+    testWidgets('인증요청 응답을 기다리는 동안 이메일 주소를 바꿀 수 없다', (tester) async {
+      final service = _PendingRequestService();
+      await _pumpSignup(tester, service);
+      await _goToAccountStep(tester);
+
+      await tester.enterText(_field(3), 'a@toggle.com');
+      await tester.pump();
+      await tester.tap(find.text('인증요청'));
+      await tester.pump();
+      expect(emailFieldEnabled(tester), isFalse); // 잠김
+
+      service.request.complete();
+      await _waitForService(tester);
+      expect(emailFieldEnabled(tester), isTrue); // 응답 후 다시 열림
+      expect(find.text('03:00'), findsOneWidget);
+    });
+
+    testWidgets('인증요청 중 화면을 나간 뒤 서버 오류가 와도 앱 오류가 나지 않는다', (tester) async {
+      final service = _PendingRequestService();
+      await _pumpSignup(tester, service);
+      await _goToAccountStep(tester);
+
+      await tester.enterText(_field(3), 'a@toggle.com');
+      await tester.pump();
+      await tester.tap(find.text('인증요청'));
+      await tester.pump();
+
+      // 2단계 → 1단계 → 로그인 화면 (회원가입 화면이 사라짐)
+      // 로딩 표시가 계속 돌아서 pumpAndSettle 대신 조금씩 기다려요.
+      await tester.tap(find.byTooltip('뒤로가기'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.byTooltip('뒤로가기'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      expect(find.text('login-target'), findsOneWidget);
+      expect(find.byType(SignupScreen), findsNothing); // 화면이 완전히 사라짐
+
+      service.request.completeError(
+        const AuthException(
+          AuthErrorCode.emailVerificationTooManyRequests,
+          '잠시 후 다시 요청해 주세요.',
+        ),
+      );
+      await _waitForService(tester);
+      expect(tester.takeException(), isNull);
     });
   });
 }

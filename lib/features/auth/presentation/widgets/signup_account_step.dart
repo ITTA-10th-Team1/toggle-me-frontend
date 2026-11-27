@@ -85,6 +85,9 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
   bool get _timeLeft => _remaining > Duration.zero;
   bool get _emailVerified => _verificationToken != null;
 
+  /// 이메일 인증 요청·확인 응답을 기다리는 중
+  bool get _waitingEmail => _sendingCode || _verifying;
+
   /// 중복확인을 통과했는지 (서버에 확인 API가 없으면 형식 확인만으로 통과)
   bool get _idChecked =>
       _idCheck == LoginIdCheck.available || _idCheck == LoginIdCheck.formatOnly;
@@ -178,7 +181,9 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
     setState(() => _sendingCode = true);
     try {
       await widget.service.requestEmailCode(email);
-      if (!mounted) return;
+      // 아래 _isStale과 같은 확인이지만, 바로 아래에서 context를 쓰려면
+      // mounted를 여기서 직접 확인해야 분석기가 안전하다고 알아봐요.
+      if (!mounted || _isStale(email)) return;
       setState(() {
         _sentEmail = email;
         _emailMessage = null;
@@ -187,6 +192,7 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
       });
       showAppNotice(context, '인증번호를 보냈어요.');
     } on AuthException catch (e) {
+      if (_isStale(email)) return;
       // 이미 가입된 이메일, 너무 자주 요청함 등은 이메일 칸 아래에 서버 문장을 보여줘요.
       if (_isServerError(e)) {
         setState(() => _setEmailMessage(e.message, SignupStyle.error));
@@ -194,11 +200,16 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
         _showError(e);
       }
     } catch (e) {
+      if (_isStale(email)) return;
       _showError(e);
     } finally {
       if (mounted) setState(() => _sendingCode = false);
     }
   }
+
+  /// 응답을 기다리는 동안 화면을 나갔거나 이메일을 고쳤으면 true.
+  /// 그때 온 응답은 지금 화면과 맞지 않아서 무시해요. (PR #46 리뷰)
+  bool _isStale(String requestedEmail) => !mounted || _email != requestedEmail;
 
   void _startTimer() {
     _timer?.cancel();
@@ -217,19 +228,21 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
 
   Future<void> _verifyCode() async {
     FocusScope.of(context).unfocus();
+    final email = _sentEmail!;
     setState(() => _verifying = true);
     try {
       final token = await widget.service.verifyEmailCode(
-        email: _sentEmail!,
+        email: email,
         code: _codeController.text,
       );
-      if (!mounted) return;
+      if (_isStale(email)) return;
       setState(() {
         _verificationToken = token;
         _timer?.cancel();
         _setEmailMessage('이메일 인증이 완료됐어요.', SignupStyle.success);
       });
     } on AuthException catch (e) {
+      if (_isStale(email)) return;
       // 번호 틀림, 만료, 5번 틀림 등은 서버 문장을 그대로 보여줘요.
       if (_isServerError(e)) {
         setState(() => _setEmailMessage(e.message, SignupStyle.error));
@@ -237,6 +250,7 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
         _showError(e);
       }
     } catch (e) {
+      if (_isStale(email)) return;
       _showError(e);
     } finally {
       if (mounted) setState(() => _verifying = false);
@@ -438,7 +452,7 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
   }
 
   List<Widget> _buildEmailSection() {
-    final canRequest = _emailValid && !_emailVerified && !_sendingCode;
+    final canRequest = _emailValid && !_emailVerified && !_waitingEmail;
     final canVerify =
         _codeSent &&
         !_emailVerified &&
@@ -451,7 +465,8 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
       SignupTextField(
         controller: _emailController,
         hintText: '이메일 주소 입력',
-        enabled: !_emailVerified,
+        // 인증요청·확인을 기다리는 동안에는 주소를 못 바꾸게 잠가요.
+        enabled: !_emailVerified && !_waitingEmail,
         keyboardType: TextInputType.emailAddress,
         textInputAction: TextInputAction.done,
         inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
@@ -465,7 +480,7 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
       SignupTextField(
         controller: _codeController,
         hintText: '인증번호 6자리',
-        enabled: _codeSent && !_emailVerified,
+        enabled: _codeSent && !_emailVerified && !_verifying,
         keyboardType: TextInputType.number,
         textInputAction: TextInputAction.done,
         inputFormatters: [
