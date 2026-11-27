@@ -240,6 +240,29 @@ void main() {
     expect(requests, 2);
   });
 
+  test(
+    'retry interceptor does not replace the refreshed A token with B',
+    () async {
+      final sentTokens = <Object?>[];
+      final adapter = _Adapter((options) {
+        sentTokens.add(options.headers['Authorization']);
+        return (401, {'code': 'UNAUTHORIZED'});
+      });
+      var reads = 0;
+      final api = ApiClient(
+        dio: _dio(adapter),
+        readAccessToken: () async => ++reads == 1 ? 'account-a' : 'account-b',
+        refreshAccessToken: (_) async => 'fresh-a',
+      );
+      await expectLater(
+        api.dio.get<dynamic>('/api/v1/items/42'),
+        throwsA(isA<DioException>()),
+      );
+      expect(adapter.requests.length, 1);
+      expect(sentTokens, ['Bearer account-a']);
+    },
+  );
+
   test('S3 receives JPEG bytes with no API bearer token', () async {
     final presign = _Adapter(
       (options) => (

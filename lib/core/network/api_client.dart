@@ -28,6 +28,17 @@ class ApiClient {
             final token = readAccessToken == null
                 ? _accessToken
                 : await readAccessToken();
+            if (options.extra['sessionRetried'] == true &&
+                options.headers['Authorization'] != 'Bearer $token') {
+              handler.reject(
+                DioException(
+                  requestOptions: options,
+                  type: DioExceptionType.cancel,
+                  message: '로그인 상태가 변경되어 이전 요청을 중단했어요.',
+                ),
+              );
+              return;
+            }
             if (token != null && token.isNotEmpty) {
               options.headers['Authorization'] = 'Bearer $token';
             }
