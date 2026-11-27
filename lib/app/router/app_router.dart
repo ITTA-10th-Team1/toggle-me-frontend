@@ -50,7 +50,7 @@ final GoRouter appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.memberSetup,
-      builder: (context, state) => const MemberSetupScreen(),
+      builder: (context, state) => const MemberSetupScreen(autoStart: true),
     ),
 
     GoRoute(

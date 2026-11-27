@@ -26,7 +26,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
   final ItemImagePicker _imagePicker = ItemImagePicker();
   final TextEditingController _memoController = TextEditingController();
 
-  bool _isPublic = false;
+  bool _isPublic = true;
   int? _selectedCategory;
 
   final List<_CategoryItem> _categories = const [
