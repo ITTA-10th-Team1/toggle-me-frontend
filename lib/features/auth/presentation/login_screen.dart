@@ -102,6 +102,8 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on UnimplementedError catch (e) {
       _showMessage(e.message ?? '준비 중이에요.');
+    } on KakaoWebLoginUnavailableException catch (e) {
+      _showMessage(e.toString());
     } on KakaoAppKeyMissingException catch (e) {
       _showMessage(e.toString());
     } on AuthException catch (e) {

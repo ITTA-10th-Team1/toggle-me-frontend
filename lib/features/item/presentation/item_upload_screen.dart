@@ -1,8 +1,10 @@
+import '../../../core/network/request_error_message.dart';
+import '../../../core/widgets/room_navigation.dart';
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:toggle_me/app/theme/app_colors.dart';
@@ -90,34 +92,24 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     if (ref.read(itemUploadProvider).isSubmitting) return;
-
-    final XFile? image;
-
-    if (source == ImageSource.gallery) {
-      image = await _imagePicker.pickFromGallery();
-    } else {
-      image = await _imagePicker.pickFromCamera();
-    }
-
-    if (!mounted || image == null) return;
-
     final furnitureTypeId = _selectedFurnitureTypeId;
-
     if (furnitureTypeId == null) {
       _showMessage('카테고리를 먼저 선택해주세요.');
       return;
     }
-
-    await ref
-        .read(itemUploadProvider.notifier)
-        .setImage(image, furnitureTypeId: furnitureTypeId);
-
-    if (!mounted) return;
-
-    final state = ref.read(itemUploadProvider);
-
-    if (state.errorMessage != null) {
-      _showMessage(state.errorMessage!);
+    try {
+      final image = source == ImageSource.gallery
+          ? await _imagePicker.pickFromGallery()
+          : await _imagePicker.pickFromCamera();
+      if (!mounted || image == null) return;
+      await ref
+          .read(itemUploadProvider.notifier)
+          .setImage(image, furnitureTypeId: furnitureTypeId);
+      if (!mounted) return;
+      final state = ref.read(itemUploadProvider);
+      if (state.errorMessage != null) _showMessage(state.errorMessage!);
+    } catch (error) {
+      if (mounted) _showMessage(requestErrorMessage(error));
     }
   }
 
@@ -138,7 +130,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 
     if (!hasContent) {
       ref.read(itemUploadProvider.notifier).removeImage();
-      if (mounted) context.pop();
+      if (mounted) popOrGoRoom(context);
       return;
     }
 
@@ -168,7 +160,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 
     if (shouldExit == true && mounted) {
       ref.read(itemUploadProvider.notifier).removeImage();
-      context.pop();
+      popOrGoRoom(context);
     }
   }
 
@@ -223,7 +215,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       }
 
       _showMessage('사진이 기록되었습니다.');
-      context.pop();
+      popOrGoRoom(context);
     } catch (e) {
       debugPrint('아이템 기록 실패 원인: $e');
 
@@ -536,6 +528,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
         TextField(
           controller: _memoController,
           maxLines: 1,
+          maxLength: 200,
           style: const TextStyle(
             fontFamily: 'Pretendard',
             fontSize: 16,
@@ -653,13 +646,6 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                 }).toList(),
         ),
       ],
-    );
-  }
-
-  Widget _tagMessage(String message) {
-    return Text(
-      message,
-      style: const TextStyle(fontSize: 12, color: AppColors.textHint),
     );
   }
 

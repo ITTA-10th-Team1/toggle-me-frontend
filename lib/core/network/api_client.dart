@@ -1,29 +1,68 @@
 import 'package:dio/dio.dart';
 
 class ApiClient {
-  ApiClient({String? accessToken}) {
+  ApiClient({
+    String? accessToken,
+    Dio? dio,
+    Future<String> Function()? readAccessToken,
+    Future<String> Function(String rejected)? refreshAccessToken,
+  }) {
     _accessToken = accessToken;
 
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: apiBaseUrl,
-        connectTimeout: const Duration(seconds: 60),
-        receiveTimeout: const Duration(seconds: 60),
-        sendTimeout: const Duration(seconds: 60),
-        headers: {'Content-Type': 'application/json'},
-      ),
-    );
+    _dio =
+        dio ??
+        Dio(
+          BaseOptions(
+            baseUrl: apiBaseUrl,
+            connectTimeout: const Duration(seconds: 60),
+            receiveTimeout: const Duration(seconds: 60),
+            sendTimeout: const Duration(seconds: 60),
+            headers: {'Content-Type': 'application/json'},
+          ),
+        );
 
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
-          final token = _accessToken;
-
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+        onRequest: (options, handler) async {
+          try {
+            final token = readAccessToken == null
+                ? _accessToken
+                : await readAccessToken();
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+            handler.next(options);
+          } catch (error) {
+            handler.reject(DioException(requestOptions: options, error: error));
           }
-
-          handler.next(options);
+        },
+        onError: (error, handler) async {
+          final request = error.requestOptions;
+          final authorization = request.headers['Authorization'];
+          if (refreshAccessToken == null ||
+              error.response?.statusCode != 401 ||
+              request.extra['sessionRetried'] == true ||
+              authorization is! String ||
+              !authorization.startsWith('Bearer ')) {
+            handler.next(error);
+            return;
+          }
+          try {
+            final token = await refreshAccessToken(authorization.substring(7));
+            request.extra['sessionRetried'] = true;
+            request.headers['Authorization'] = 'Bearer $token';
+            handler.resolve(await _dio.fetch<dynamic>(request));
+          } on DioException catch (retry) {
+            handler.next(retry);
+          } catch (refreshError) {
+            handler.next(
+              DioException(
+                requestOptions: request,
+                error: refreshError,
+                response: error.response,
+              ),
+            );
+          }
         },
       ),
     );

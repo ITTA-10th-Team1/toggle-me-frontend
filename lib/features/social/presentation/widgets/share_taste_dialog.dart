@@ -102,7 +102,9 @@ class _ShareTasteDialogState extends State<ShareTasteDialog> {
   Future<void> _copyLink() async {
     try {
       await _service.copyLink(_content);
-      _setMessage('링크를 복사했어요.');
+      _setMessage(
+        TasteShareContent.hasLink ? '공유 내용을 복사했어요.' : '취향 내용을 복사했어요.',
+      );
     } catch (_) {
       _setMessage('복사하지 못했어요. 다시 시도해 주세요.');
     }
@@ -510,7 +512,7 @@ class _ShareOptionSheet extends StatelessWidget {
             _optionTile(
               context,
               option: _ShareOption.copyLink,
-              label: '링크 복사',
+              label: TasteShareContent.hasLink ? '공유 내용 복사' : '취향 내용 복사',
               icon: Icons.link,
               iconColor: _ShareColors.icon,
               iconBackground: _ShareColors.linkIconBackground,

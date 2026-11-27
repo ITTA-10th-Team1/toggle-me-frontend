@@ -1,5 +1,6 @@
+import '../../../../core/network/request_error_message.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../../item/presentation/providers/item_upload_provider.dart';
 import '../../data/item_detail_model.dart';
@@ -75,7 +76,7 @@ class ItemDetailState {
 }
 
 final itemDetailProvider =
-    NotifierProvider<ItemDetailNotifier, ItemDetailState>(
+    NotifierProvider.autoDispose<ItemDetailNotifier, ItemDetailState>(
       ItemDetailNotifier.new,
     );
 
@@ -87,16 +88,12 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
       ref.read(itemDetailRepositoryProvider);
 
   @override
-  ItemDetailState build() => const ItemDetailState();
-
-  Future<void> _ensureAccessToken() async {
-    final token = await ref.read(tokenStorageProvider).getAccessToken();
-
-    if (token == null || token.isEmpty) {
-      throw Exception('로그인이 필요합니다.');
-    }
-
-    ref.read(apiClientProvider).setAccessToken(token);
+  ItemDetailState build() {
+    ref.onDispose(() {
+      _requestId++;
+      _recommendationRequestId++;
+    });
+    return const ItemDetailState();
   }
 
   /// 상세 화면 진입 시 최신 이미지 URL을 포함한 상세 정보를 조회한다.
@@ -107,21 +104,18 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
     state = const ItemDetailState(isLoading: true);
 
     try {
-      await _ensureAccessToken();
       final item = await _repository.getItem(itemId);
 
-      if (requestId != _requestId) return;
+      if (!ref.mounted || requestId != _requestId) return;
 
       state = ItemDetailState(item: item);
 
       // 거울(furnitureTypeId: 1)의 검색어 불러오기
-      if (item.furnitureTypeId == 1) {
-        await fetchSearchQueries(itemId);
-      }
+      await fetchSearchQueries(itemId);
     } catch (e) {
-      if (requestId != _requestId) return;
+      if (!ref.mounted || requestId != _requestId) return;
 
-      state = ItemDetailState(errorMessage: e.toString());
+      state = ItemDetailState(errorMessage: requestErrorMessage(e));
     }
   }
 
@@ -132,15 +126,11 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
         itemId,
       );
 
-      print('========== 검색어 조회 ==========');
-      print('아이템 ID: $itemId');
-      print('불러온 검색어: $queries');
-
-      if (state.item?.id != itemId) return;
+      if (!ref.mounted || state.item?.id != itemId) return;
 
       state = state.copyWith(searchQueries: queries);
-    } catch (e) {
-      debugPrint('검색어 불러오기 실패: $e');
+    } catch (_) {
+      // Browser storage is optional; keep the successfully loaded server data.
     }
   }
 
@@ -160,26 +150,21 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
     );
 
     try {
-      await _ensureAccessToken();
       final recommendations = await _repository.getRecommendations(itemId);
 
-      if (requestId != _recommendationRequestId) return;
+      if (!ref.mounted || requestId != _recommendationRequestId) return;
 
       state = state.copyWith(
         recommendations: recommendations,
         isLoadingRecommendations: false,
         hasLoadedRecommendations: true,
       );
-    } catch (e, stackTrace) {
-      if (requestId != _recommendationRequestId) return;
-
-      debugPrint('========== AI 추천 Provider 오류 ==========');
-      debugPrint('[AI 추천] error: $e');
-      debugPrint('[AI 추천] stackTrace: $stackTrace');
+    } catch (e) {
+      if (!ref.mounted || requestId != _recommendationRequestId) return;
 
       state = state.copyWith(
         isLoadingRecommendations: false,
-        recommendationError: e.toString(),
+        recommendationError: requestErrorMessage(e),
       );
     }
   }
@@ -198,14 +183,12 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
     state = state.copyWith(isUpdatingVisibility: true, clearError: true);
 
     try {
-      await _ensureAccessToken();
-
       final updatedItem = await _repository.updateVisibility(
         itemId,
         isPublic ? 'PUBLIC' : 'PRIVATE',
       );
 
-      if (requestId != _requestId || state.item?.id != itemId) {
+      if (!ref.mounted || requestId != _requestId || state.item?.id != itemId) {
         return false;
       }
 
@@ -213,13 +196,13 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
 
       return true;
     } catch (e) {
-      if (requestId != _requestId || state.item?.id != itemId) {
+      if (!ref.mounted || requestId != _requestId || state.item?.id != itemId) {
         return false;
       }
 
       state = state.copyWith(
         isUpdatingVisibility: false,
-        errorMessage: e.toString(),
+        errorMessage: requestErrorMessage(e),
       );
 
       return false;
@@ -240,11 +223,9 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
     state = state.copyWith(isUpdatingMemo: true, clearError: true);
 
     try {
-      await _ensureAccessToken();
-
       final updatedItem = await _repository.updateMemo(itemId, memo);
 
-      if (requestId != _requestId || state.item?.id != itemId) {
+      if (!ref.mounted || requestId != _requestId || state.item?.id != itemId) {
         return false;
       }
 
@@ -252,11 +233,14 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
 
       return true;
     } catch (e) {
-      if (requestId != _requestId || state.item?.id != itemId) {
+      if (!ref.mounted || requestId != _requestId || state.item?.id != itemId) {
         return false;
       }
 
-      state = state.copyWith(isUpdatingMemo: false, errorMessage: e.toString());
+      state = state.copyWith(
+        isUpdatingMemo: false,
+        errorMessage: requestErrorMessage(e),
+      );
 
       return false;
     }
@@ -273,17 +257,16 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
     state = state.copyWith(isDeleting: true, clearError: true);
 
     try {
-      await _ensureAccessToken();
       await _repository.deleteItem(itemId);
 
       // 서버 삭제 성공 후 로컬 검색어 삭제
       try {
         await ItemRecommendationStorage().deleteSearchQueries(itemId);
-      } catch (e) {
-        debugPrint('로컬 검색어 삭제 실패: $e');
+      } catch (_) {
+        // Browser storage is optional; keep the successfully loaded server data.
       }
 
-      if (requestId != _requestId || state.item?.id != itemId) {
+      if (!ref.mounted || requestId != _requestId || state.item?.id != itemId) {
         return true;
       }
 
@@ -293,11 +276,14 @@ class ItemDetailNotifier extends Notifier<ItemDetailState> {
       state = const ItemDetailState();
       return true;
     } catch (e) {
-      if (requestId != _requestId || state.item?.id != itemId) {
+      if (!ref.mounted || requestId != _requestId || state.item?.id != itemId) {
         return false;
       }
 
-      state = state.copyWith(isDeleting: false, errorMessage: e.toString());
+      state = state.copyWith(
+        isDeleting: false,
+        errorMessage: requestErrorMessage(e),
+      );
 
       return false;
     }

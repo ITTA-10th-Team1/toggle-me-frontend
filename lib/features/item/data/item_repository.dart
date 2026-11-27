@@ -21,15 +21,10 @@ class ItemRepository {
   Future<String> requestAnalysis(String imageKey, int furnitureTypeId) async {
     final payload = {'imageKey': imageKey, 'furnitureTypeId': furnitureTypeId};
 
-    print('========== AI 분석 요청 Payload ==========');
-    print(payload);
-
     final response = await _apiClient.dio.post(
       '/api/v1/images/analysis',
       data: payload,
     );
-
-    print('AI 분석 요청 응답: ${response.data}');
 
     final result = ImageAnalysisResult.fromJson(
       Map<String, dynamic>.from(response.data as Map),
@@ -44,9 +39,6 @@ class ItemRepository {
       '/api/v1/images/analysis/$analysisId',
     );
 
-    print('========== AI 분석 원본 응답 ==========');
-    print(response.data);
-
     return ImageAnalysisStatus.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );
@@ -59,27 +51,22 @@ class ItemRepository {
   }) async {
     final stopwatch = Stopwatch()..start();
 
-    while (stopwatch.elapsed < const Duration(seconds: 60)) {
+    const limit = Duration(seconds: 60);
+    while (stopwatch.elapsed < limit) {
       if (shouldContinue != null && !shouldContinue()) {
         return const ImageAnalysisStatus(status: 'FAILED');
       }
-
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (shouldContinue != null && !shouldContinue()) {
-        return const ImageAnalysisStatus(status: 'FAILED');
-      }
-
       try {
-        final result = await getAnalysisResult(analysisId);
-
+        final result = await getAnalysisResult(analysisId)
+            .timeout(limit - stopwatch.elapsed);
         if (result.status == 'COMPLETED' || result.status == 'FAILED') {
           return result;
         }
-      } catch (e) {
-        print('AI 분석 결과 조회 실패: $e');
-        rethrow;
+      } on TimeoutException {
+        break;
       }
+      if (shouldContinue != null && !shouldContinue()) break;
+      await Future<void>.delayed(const Duration(seconds: 2));
     }
 
     return const ImageAnalysisStatus(status: 'FAILED');

@@ -3,10 +3,13 @@ import '../../../core/widgets/app_notice.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 import 'room_scene_bridge.dart';
+import 'room_web_view_stub.dart'
+    if (dart.library.js_interop) 'room_web_view.dart';
 import 'room_camera_config.dart';
 import 'room_lighting_config.dart';
 import 'room_bottom_bar.dart';
@@ -305,54 +308,78 @@ class _RoomScreenState extends State<RoomScreen> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          ModelViewer(
-                            key: ValueKey('demo-room-v12-$_attempt'),
-                            src: 'assets/models/toggleme_room.glb',
-                            alt: '나의 3D 방',
-                            backgroundColor: _background,
-                            environmentImage: RoomLightingConfig.environment,
-                            exposure: RoomLightingConfig.exposure,
-                            shadowIntensity: RoomLightingConfig.shadowIntensity,
-                            shadowSoftness: RoomLightingConfig.shadowSoftness,
-                            loading: Loading.eager,
-                            cameraControls: false,
-                            disablePan: true,
-                            disableTap: true,
-                            autoRotate: false,
-                            disableZoom: true,
-                            cameraOrbit: RoomCameraConfig.orbit,
-                            fieldOfView: RoomCameraConfig.fieldOfView,
-                            minFieldOfView: RoomCameraConfig.fieldOfView,
-                            maxFieldOfView: RoomCameraConfig.fieldOfView,
-                            minCameraOrbit: RoomCameraConfig.orbit,
-                            maxCameraOrbit: RoomCameraConfig.orbit,
-                            interactionPrompt: InteractionPrompt.none,
-                            relatedCss: 'model-viewer { touch-action: none; }',
-                            javascriptChannels: {
-                              JavascriptChannel(
-                                'RoomFurniture',
-                                onMessageReceived: (message) {
-                                  if (mounted && _modelLoaded) {
-                                    _openFurniture(message.message);
-                                  }
-                                },
-                              ),
-                              JavascriptChannel(
-                                'RoomStatus',
-                                onMessageReceived: (message) {
-                                  if (!mounted) return;
-                                  _loadTimer?.cancel();
-                                  setState(() {
-                                    _modelLoaded = message.message == 'loaded';
-                                    _modelFailed = !_modelLoaded;
-                                  });
-                                },
-                              ),
-                            },
-                            relatedJs: widget.furniture == null
-                                ? roomSceneBridge
-                                : roomSceneBridgeFor(widget.furniture!),
-                          ),
+                          if (kIsWeb)
+                            RoomWebView(
+                              key: ValueKey('web-room-$_attempt'),
+                              bridge: widget.furniture == null
+                                  ? roomSceneBridge
+                                  : roomSceneBridgeFor(widget.furniture!),
+                              onFurniture: (value) {
+                                if (mounted && _modelLoaded) {
+                                  _openFurniture(value);
+                                }
+                              },
+                              onStatus: (value) {
+                                if (!mounted) return;
+                                _loadTimer?.cancel();
+                                setState(() {
+                                  _modelLoaded = value == 'loaded';
+                                  _modelFailed = !_modelLoaded;
+                                });
+                              },
+                            )
+                          else
+                            ModelViewer(
+                              key: ValueKey('demo-room-v12-$_attempt'),
+                              src: 'assets/models/toggleme_room.glb',
+                              alt: '나의 3D 방',
+                              backgroundColor: _background,
+                              environmentImage: RoomLightingConfig.environment,
+                              exposure: RoomLightingConfig.exposure,
+                              shadowIntensity:
+                                  RoomLightingConfig.shadowIntensity,
+                              shadowSoftness: RoomLightingConfig.shadowSoftness,
+                              loading: Loading.eager,
+                              cameraControls: false,
+                              disablePan: true,
+                              disableTap: true,
+                              autoRotate: false,
+                              disableZoom: true,
+                              cameraOrbit: RoomCameraConfig.orbit,
+                              fieldOfView: RoomCameraConfig.fieldOfView,
+                              minFieldOfView: RoomCameraConfig.fieldOfView,
+                              maxFieldOfView: RoomCameraConfig.fieldOfView,
+                              minCameraOrbit: RoomCameraConfig.orbit,
+                              maxCameraOrbit: RoomCameraConfig.orbit,
+                              interactionPrompt: InteractionPrompt.none,
+                              relatedCss:
+                                  'model-viewer { touch-action: none; }',
+                              javascriptChannels: {
+                                JavascriptChannel(
+                                  'RoomFurniture',
+                                  onMessageReceived: (message) {
+                                    if (mounted && _modelLoaded) {
+                                      _openFurniture(message.message);
+                                    }
+                                  },
+                                ),
+                                JavascriptChannel(
+                                  'RoomStatus',
+                                  onMessageReceived: (message) {
+                                    if (!mounted) return;
+                                    _loadTimer?.cancel();
+                                    setState(() {
+                                      _modelLoaded =
+                                          message.message == 'loaded';
+                                      _modelFailed = !_modelLoaded;
+                                    });
+                                  },
+                                ),
+                              },
+                              relatedJs: widget.furniture == null
+                                  ? roomSceneBridge
+                                  : roomSceneBridgeFor(widget.furniture!),
+                            ),
                           if (!_modelLoaded)
                             Container(
                               padding: const EdgeInsets.all(16),

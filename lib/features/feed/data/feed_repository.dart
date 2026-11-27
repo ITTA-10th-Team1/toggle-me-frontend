@@ -15,9 +15,9 @@ class FeedRepository {
     final response = await _apiClient.dio.get(
       furnitureTypeId == null ? '/api/v1/items/all' : '/api/v1/items/feed',
       queryParameters: {
-        if (furnitureTypeId != null) 'furnitureTypeId': furnitureTypeId,
+        'furnitureTypeId': ?furnitureTypeId,
         'sort': sort,
-        if (cursor != null) 'cursor': cursor,
+        'cursor': ?cursor,
       },
     );
 

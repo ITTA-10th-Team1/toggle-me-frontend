@@ -358,9 +358,9 @@ void main() {
     final repo = FeedRepository(api);
     await repo.getAllItems(furnitureTypeId: 42, sort: 'OLDEST', cursor: 11);
     expect(adapter.requests.last.path, '/api/v1/items/feed');
-    expect(adapter.requests.last.queryParameters, {
+    expect(adapter.requests.last.uri.queryParameters, {
       'sort': 'OLDEST',
-      'furnitureTypeId': 42,
+      'furnitureTypeId': '42',
       'cursor': '11',
     });
     await repo.getAllItems();

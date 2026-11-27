@@ -1,7 +1,8 @@
+import '../../../core/widgets/room_navigation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/app_notice.dart';
@@ -77,7 +78,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     if (!mounted) return;
 
     if (success) {
-      context.pop(true);
+      popOrGoRoom(context, true);
     } else {
       final message = ref.read(itemDetailProvider).errorMessage ?? '삭제에 실패했어요.';
       showAppNotice(context, message);
@@ -95,7 +96,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     }
 
     if (!_hasUnsavedMemo) {
-      context.pop();
+      popOrGoRoom(context);
       return;
     }
 
@@ -133,7 +134,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     await Future<void>.delayed(Duration.zero);
 
     if (mounted) {
-      context.pop();
+      popOrGoRoom(context);
     }
   }
 
@@ -261,7 +262,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
               imageUrl,
               width: double.infinity,
               fit: BoxFit.fitWidth,
-              errorBuilder: (_, __, ___) => _imagePlaceholder(),
+              errorBuilder: (_, _, _) => _imagePlaceholder(),
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;
                 return AspectRatio(
@@ -309,6 +310,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         TextField(
           controller: _memoController,
           maxLines: 1,
+          maxLength: 200,
           textInputAction: TextInputAction.done,
           style: const TextStyle(
             fontFamily: 'Pretendard',
@@ -684,7 +686,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: state.recommendations.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   return _buildRecommendationCard(state.recommendations[index]);
                 },
@@ -710,7 +712,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   : Image.network(
                       item.imageUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                      errorBuilder: (_, _, _) => _imagePlaceholder(),
                       loadingBuilder: (context, child, progress) {
                         if (progress == null) return child;
                         return _imagePlaceholder(

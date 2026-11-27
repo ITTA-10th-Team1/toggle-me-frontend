@@ -20,10 +20,12 @@ class OnboardingScreen extends StatefulWidget {
     super.key,
     this.roomDraft,
     this.resumeSession = false,
+    this.repository,
   });
 
   final RoomOnboardingDraft? roomDraft;
   final bool resumeSession;
+  final RoomRepository? repository;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -31,32 +33,39 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   late bool _isOn;
+  bool _resuming = false;
+  bool _redirecting = false;
   RoomOnboardingDraft get _draft => widget.roomDraft ?? roomOnboardingDraft;
 
   @override
   void initState() {
     super.initState();
     _isOn = _draft.visibility.isPublic;
+    _resuming = widget.resumeSession;
     if (widget.resumeSession) _resume();
   }
 
   Future<void> _resume() async {
+    final repo = widget.repository ?? RoomRepository(memberApi);
     try {
       await _draft.restore();
       if (!mounted) return;
       setState(() => _isOn = _draft.visibility.isPublic);
-      if (!await memberApi.hasSession) return;
-      final me = await RoomRepository(memberApi).me();
+      if (!await repo.api.hasSession) return;
+      final me = await repo.me();
       if (!mounted ||
           GoRouter.of(context).routeInformationProvider.value.uri.path !=
               AppRoutes.onboarding) {
         return;
       }
+      _redirecting = true;
       context.go(
         me['onboardingStep'] == 'DONE' ? AppRoutes.room : AppRoutes.memberSetup,
       );
     } catch (_) {
       // Offline sessions can retry through login; never erase stored room data.
+    } finally {
+      if (mounted && !_redirecting) setState(() => _resuming = false);
     }
   }
 
@@ -84,6 +93,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_resuming) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppGradients.onboarding),

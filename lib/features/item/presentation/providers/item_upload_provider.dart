@@ -1,16 +1,21 @@
+import '../../../../core/network/request_error_message.dart';
+
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../data/item_repository.dart';
 import '../../data/item_recommendation_storage.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/member_api.dart';
 import '../../../auth/data/token_storage.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
-  final client = ApiClient();
+  final client = ApiClient(
+    readAccessToken: memberApi.accessToken,
+    refreshAccessToken: memberApi.refreshAccessToken,
+  );
 
   ref.onDispose(() => client.dio.close());
 
@@ -24,6 +29,10 @@ final itemRepositoryProvider = Provider<ItemRepository>((ref) {
 final tokenStorageProvider = Provider<TokenStorage>((ref) {
   return TokenStorage();
 });
+
+final itemRecommendationStorageProvider = Provider<ItemRecommendationStorage>(
+  (ref) => ItemRecommendationStorage(),
+);
 
 class ItemUploadState {
   const ItemUploadState({
@@ -84,7 +93,7 @@ class ItemUploadState {
 }
 
 final itemUploadProvider =
-    NotifierProvider<ItemUploadNotifier, ItemUploadState>(
+    NotifierProvider.autoDispose<ItemUploadNotifier, ItemUploadState>(
       ItemUploadNotifier.new,
     );
 
@@ -95,17 +104,8 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
 
   @override
   ItemUploadState build() {
+    ref.onDispose(() => _operationId++);
     return const ItemUploadState();
-  }
-
-  Future<void> _ensureAccessToken() async {
-    final token = await ref.read(tokenStorageProvider).getAccessToken();
-
-    if (token == null || token.isEmpty) {
-      throw Exception('로그인이 필요합니다.');
-    }
-
-    ref.read(apiClientProvider).setAccessToken(token);
   }
 
   /// 사진 선택 또는 교체
@@ -121,16 +121,14 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
       // 이미지 바이트 읽기
       final imageBytes = await image.readAsBytes();
 
-      if (operationId != _operationId) return;
+      if (!ref.mounted || operationId != _operationId) return;
 
       state = state.copyWith(selectedImageBytes: imageBytes);
-
-      await _ensureAccessToken();
 
       // 1. S3 이미지 업로드
       final imageKey = await _repository.uploadImage(imageBytes);
 
-      if (operationId != _operationId) return;
+      if (!ref.mounted || operationId != _operationId) return;
 
       state = state.copyWith(
         imageKey: imageKey,
@@ -144,7 +142,7 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
         furnitureTypeId,
       );
 
-      if (operationId != _operationId) return;
+      if (!ref.mounted || operationId != _operationId) return;
 
       // 3. AI 분석 결과 조회
       final analysisResult = await _repository.pollAnalysis(
@@ -152,26 +150,24 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
         shouldContinue: () => operationId == _operationId,
       );
 
-      print('========== AI 분석 결과 ==========');
-      print('분석 상태: ${analysisResult.status}');
-      print('추천 태그: ${analysisResult.tags}');
-      print('추천 검색어: ${analysisResult.searchQueries}');
-
-      if (operationId != _operationId) return;
+      if (!ref.mounted || operationId != _operationId) return;
 
       state = state.copyWith(
         isGeneratingTags: false,
         recommendedTags: analysisResult.tags,
         recommendedSearchQueries: analysisResult.searchQueries,
         selectedTags: {},
+        errorMessage: analysisResult.status == 'COMPLETED'
+            ? null
+            : 'AI 분석을 완료하지 못했어요. 사진은 그대로 기록할 수 있어요.',
       );
     } catch (e) {
-      if (operationId != _operationId) return;
+      if (!ref.mounted || operationId != _operationId) return;
 
       state = state.copyWith(
         isUploading: false,
         isGeneratingTags: false,
-        errorMessage: e.toString(),
+        errorMessage: requestErrorMessage(e),
       );
     }
   }
@@ -220,8 +216,6 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
     state = state.copyWith(isSubmitting: true, clearError: true);
 
     try {
-      await _ensureAccessToken();
-
       // 1. 아이템 등록 후 생성된 ID 받기
       final itemId = await _repository.registerItem(
         imageKey: imageKey,
@@ -232,30 +226,26 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
       );
 
       // 2. 거울인 경우 AI 검색어를 아이템 ID와 연결해 저장
-      if (furnitureTypeId == 1) {
-        await ItemRecommendationStorage().saveSearchQueries(
-          itemId,
-          state.recommendedSearchQueries,
-        );
+      if (ref.mounted && state.recommendedSearchQueries.isNotEmpty) {
+        try {
+          await ref
+              .read(itemRecommendationStorageProvider)
+              .saveSearchQueries(itemId, state.recommendedSearchQueries);
+        } catch (_) {
+          // The server already saved the item. A browser storage failure must
+          // not report failure and encourage a duplicate POST on retry.
+        }
       }
 
-      print('========== 검색어 저장 ==========');
-      print('가구 종류 ID: $furnitureTypeId');
-      print('등록된 아이템 ID: $itemId');
-      print('저장할 검색어: ${state.recommendedSearchQueries}');
-
-      state = const ItemUploadState();
+      if (ref.mounted) state = const ItemUploadState();
       return true;
     } catch (e) {
-      if (e is DioException) {
-        print('실패한 API 주소: ${e.requestOptions.uri}');
-        print('HTTP 메서드: ${e.requestOptions.method}');
-        print('서버 응답: ${e.response?.data}');
+      if (ref.mounted) {
+        state = state.copyWith(
+          isSubmitting: false,
+          errorMessage: requestErrorMessage(e),
+        );
       }
-
-      print('아이템 기록 실패 원인: $e');
-
-      state = state.copyWith(isSubmitting: false, errorMessage: e.toString());
 
       rethrow;
     }

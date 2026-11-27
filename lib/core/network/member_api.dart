@@ -12,32 +12,50 @@ class MemberApi {
   final Dio dio;
   final TokenStorage tokens;
   Future<void>? _refreshing;
+  String? _rotatedFrom;
+  String? _rotatedTo;
 
   Future<bool> get hasSession async =>
       (await tokens.getAccessToken())?.isNotEmpty == true ||
       (await tokens.getRefreshToken())?.isNotEmpty == true;
 
-  Future<dynamic> request(String method, String path, {Object? data}) async {
-    if (dio.options.baseUrl.isEmpty) {
-      throw const MemberApiException('CONFIGURATION', '서버 주소가 설정되지 않았어요.');
-    }
+  Future<String> accessToken() async {
     var access = await tokens.getAccessToken();
     if (access == null || access.isEmpty) {
       await _refresh();
       access = await tokens.getAccessToken();
     }
+    if (access == null || access.isEmpty) {
+      throw const MemberApiException('UNAUTHORIZED', '다시 로그인해 주세요.');
+    }
+    return access;
+  }
+
+  /// Shared by room, feed, upload and detail requests. Rotate only once when
+  /// several requests discover the same expired token concurrently.
+  Future<String> refreshAccessToken(String rejected) async {
+    final current = await tokens.getAccessToken();
+    if (current == rejected) {
+      await _refresh();
+    } else if (_rotatedFrom != rejected || _rotatedTo != current) {
+      // Do not replay a previous account's write with a replacement session.
+      throw const MemberApiException('UNAUTHORIZED', '로그인 상태가 변경되었어요.');
+    }
+    return accessToken();
+  }
+
+  Future<dynamic> request(String method, String path, {Object? data}) async {
+    if (dio.options.baseUrl.isEmpty) {
+      throw const MemberApiException('CONFIGURATION', '서버 주소가 설정되지 않았어요.');
+    }
+    final access = await accessToken();
     try {
-      return await _send(method, path, data, access!);
+      return await _send(method, path, data, access);
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 &&
           e.response?.data is Map &&
           e.response?.data['code'] == 'UNAUTHORIZED') {
-        // Another request may already have rotated the token.
-        if (await tokens.getAccessToken() == access) await _refresh();
-        final next = await tokens.getAccessToken();
-        if (next == null) {
-          throw const MemberApiException('UNAUTHORIZED', '다시 로그인해 주세요.');
-        }
+        final next = await refreshAccessToken(access);
         try {
           return await _send(method, path, data, next);
         } on DioException catch (retry) {
@@ -76,6 +94,7 @@ class MemberApi {
   }
 
   Future<void> _rotateTokens() async {
+    final previousAccess = await tokens.getAccessToken();
     final refresh = await tokens.getRefreshToken();
     if (refresh == null || refresh.isEmpty) {
       throw const MemberApiException('UNAUTHORIZED', '로그인이 필요해요.');
@@ -94,6 +113,8 @@ class MemberApi {
         accessToken: body['accessToken'] as String,
         refreshToken: body['refreshToken'] as String,
       );
+      _rotatedFrom = previousAccess;
+      _rotatedTo = body['accessToken'] as String;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 &&
           await tokens.getRefreshToken() == refresh) {

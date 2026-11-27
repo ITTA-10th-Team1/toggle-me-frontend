@@ -1,3 +1,5 @@
+import '../../../core/widgets/room_navigation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -176,7 +178,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     Positioned(
                       left: 16,
                       child: GestureDetector(
-                        onTap: () => context.pop(),
+                        onTap: () => popOrGoRoom(context),
                         child: Container(
                           width: 40,
                           height: 40,

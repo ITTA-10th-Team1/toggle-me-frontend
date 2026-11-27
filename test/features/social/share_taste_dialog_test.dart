@@ -137,18 +137,18 @@ void main() {
 
     // 결과 문구가 나타나도 크기가 그대로
     await _openDialog(tester, tags: _fiveTags);
-    await _chooseOption(tester, '링크 복사');
-    expect(find.text('링크를 복사했어요.'), findsOneWidget);
+    await _chooseOption(tester, '취향 내용 복사');
+    expect(find.text('취향 내용을 복사했어요.'), findsOneWidget);
     expect(_dialogSize(tester), sizes.first);
   });
 
-  testWidgets('[공유하기]를 누르면 카카오톡·링크 복사 두 가지만 나온다', (tester) async {
+  testWidgets('[공유하기]를 누르면 카카오톡·취향 내용 복사 두 가지만 나온다', (tester) async {
     await _openDialog(tester, tags: _fiveTags);
     await tester.tap(find.text('공유하기'));
     await tester.pumpAndSettle();
 
     expect(find.text('카카오톡으로 공유하기'), findsOneWidget);
-    expect(find.text('링크 복사'), findsOneWidget);
+    expect(find.text('취향 내용 복사'), findsOneWidget);
     expect(find.byType(ListTile), findsNWidgets(2));
   });
 
@@ -177,14 +177,14 @@ void main() {
     expect(find.text('카카오톡으로 공유하지 못했어요. 다시 시도해 주세요.'), findsOneWidget);
   });
 
-  testWidgets('링크 복사 → 복사를 요청하고 "링크를 복사했어요."', (tester) async {
+  testWidgets('취향 내용 복사 → 복사를 요청하고 "취향 내용을 복사했어요."', (tester) async {
     final service = _FakeShareService();
     await _openDialog(tester, tags: _fiveTags, service: service);
 
-    await _chooseOption(tester, '링크 복사');
+    await _chooseOption(tester, '취향 내용 복사');
 
     expect(service.copied.single.hashtagLine, '#데님 #빵 #빈티지 #캠핑 #재즈');
-    expect(find.text('링크를 복사했어요.'), findsOneWidget);
+    expect(find.text('취향 내용을 복사했어요.'), findsOneWidget);
   });
 
   testWidgets('선택 창을 그냥 닫으면 아무것도 하지 않는다', (tester) async {
