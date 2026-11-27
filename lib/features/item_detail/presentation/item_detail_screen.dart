@@ -260,6 +260,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
             )
           : Image.network(
               imageUrl,
+              webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
               width: double.infinity,
               fit: BoxFit.fitWidth,
               errorBuilder: (_, _, _) => _imagePlaceholder(),
@@ -711,6 +712,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   ? _imagePlaceholder()
                   : Image.network(
                       item.imageUrl!,
+                      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
                       fit: BoxFit.cover,
                       errorBuilder: (_, _, _) => _imagePlaceholder(),
                       loadingBuilder: (context, child, progress) {
