@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -38,33 +37,42 @@ class ImageUploadService {
   static const int maxImageDimension = 1600;
   static const int jpegQuality = 85;
 
-  /// 긴 변을 최대 1600px로 줄이고 JPEG로 변환
-  Future<Uint8List> _convertToJpeg(File image) async {
-    final bytes = await image.readAsBytes();
+  /// 이미지 바이트를 JPEG로 변환하고 크기 조절
+  Future<Uint8List> _convertToJpeg(Uint8List bytes) async {
+    if (bytes.isEmpty) {
+      throw Exception('이미지 파일이 비어 있습니다.');
+    }
+
     final decodedImage = img.decodeImage(bytes);
 
     if (decodedImage == null) {
       throw Exception('이미지를 읽을 수 없습니다.');
     }
 
-    final resizedImage = img.copyResize(
-      decodedImage,
-      width: decodedImage.width >= decodedImage.height
-          ? maxImageDimension
-          : null,
-      height: decodedImage.height > decodedImage.width
-          ? maxImageDimension
-          : null,
-      maintainAspect: true,
-    );
+    final needsResize =
+        decodedImage.width > maxImageDimension ||
+        decodedImage.height > maxImageDimension;
+
+    final resizedImage = needsResize
+        ? img.copyResize(
+            decodedImage,
+            width: decodedImage.width >= decodedImage.height
+                ? maxImageDimension
+                : null,
+            height: decodedImage.height > decodedImage.width
+                ? maxImageDimension
+                : null,
+            maintainAspect: true,
+          )
+        : decodedImage;
 
     return Uint8List.fromList(
       img.encodeJpg(resizedImage, quality: jpegQuality),
     );
   }
 
-  Future<String> upload(File image) async {
-    final convertedBytes = await _convertToJpeg(image);
+  Future<String> upload(Uint8List imageBytes) async {
+    final convertedBytes = await _convertToJpeg(imageBytes);
 
     if (convertedBytes.isEmpty) {
       throw Exception('이미지 파일이 비어 있습니다.');

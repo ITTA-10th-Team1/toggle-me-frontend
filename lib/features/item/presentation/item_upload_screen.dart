@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -91,7 +91,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
   Future<void> _pickImage(ImageSource source) async {
     if (ref.read(itemUploadProvider).isSubmitting) return;
 
-    final File? image;
+    final XFile? image;
 
     if (source == ImageSource.gallery) {
       image = await _imagePicker.pickFromGallery();
@@ -320,6 +320,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 
   Widget _buildImageArea(ItemUploadState state) {
     final image = state.selectedImage;
+    final imageBytes = state.selectedImageBytes;
 
     return GestureDetector(
       onTap: image == null ? _showImagePicker : null,
@@ -335,9 +336,9 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
             color: AppColors.roomAccent,
             radius: 14,
           ),
-          child: image == null
+          child: image == null || imageBytes == null
               ? _buildEmptyImage()
-              : _buildSelectedImage(image, state),
+              : _buildSelectedImage(imageBytes, state),
         ),
       ),
     );
@@ -367,12 +368,16 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
     );
   }
 
-  Widget _buildSelectedImage(File image, ItemUploadState state) {
+  Widget _buildSelectedImage(Uint8List imageBytes, ItemUploadState state) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: Stack(
         children: [
-          Image.file(image, width: double.infinity, fit: BoxFit.fitWidth),
+          Image.memory(
+            imageBytes,
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+          ),
           if (state.isUploading)
             Positioned.fill(
               child: Container(

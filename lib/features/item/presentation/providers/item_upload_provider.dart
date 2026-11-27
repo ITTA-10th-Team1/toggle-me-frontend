@@ -1,7 +1,8 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../data/item_repository.dart';
 import '../../data/item_recommendation_storage.dart';
@@ -27,6 +28,7 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
 class ItemUploadState {
   const ItemUploadState({
     this.selectedImage,
+    this.selectedImageBytes,
     this.imageKey,
     this.isUploading = false,
     this.isGeneratingTags = false,
@@ -37,7 +39,8 @@ class ItemUploadState {
     this.errorMessage,
   });
 
-  final File? selectedImage;
+  final XFile? selectedImage;
+  final Uint8List? selectedImageBytes;
   final String? imageKey;
   final bool isUploading;
   final bool isGeneratingTags;
@@ -48,7 +51,8 @@ class ItemUploadState {
   final String? errorMessage;
 
   ItemUploadState copyWith({
-    File? selectedImage,
+    XFile? selectedImage,
+    Uint8List? selectedImageBytes,
     String? imageKey,
     bool? isUploading,
     bool? isGeneratingTags,
@@ -63,6 +67,9 @@ class ItemUploadState {
   }) {
     return ItemUploadState(
       selectedImage: clearImage ? null : selectedImage ?? this.selectedImage,
+      selectedImageBytes: clearImage
+          ? null
+          : selectedImageBytes ?? this.selectedImageBytes,
       imageKey: clearImageKey ? null : imageKey ?? this.imageKey,
       isUploading: isUploading ?? this.isUploading,
       isGeneratingTags: isGeneratingTags ?? this.isGeneratingTags,
@@ -102,7 +109,7 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
   }
 
   /// 사진 선택 또는 교체
-  Future<void> setImage(File image, {required int furnitureTypeId}) async {
+  Future<void> setImage(XFile image, {required int furnitureTypeId}) async {
     if (state.isSubmitting) return;
 
     _operationId++;
@@ -111,10 +118,17 @@ class ItemUploadNotifier extends Notifier<ItemUploadState> {
     state = ItemUploadState(selectedImage: image, isUploading: true);
 
     try {
+      // 이미지 바이트 읽기
+      final imageBytes = await image.readAsBytes();
+
+      if (operationId != _operationId) return;
+
+      state = state.copyWith(selectedImageBytes: imageBytes);
+
       await _ensureAccessToken();
 
       // 1. S3 이미지 업로드
-      final imageKey = await _repository.uploadImage(image);
+      final imageKey = await _repository.uploadImage(imageBytes);
 
       if (operationId != _operationId) return;
 

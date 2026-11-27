@@ -252,27 +252,30 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   Widget _buildItemImage(String imageUrl) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(15),
-      child: AspectRatio(
-        aspectRatio: 326.6279296875 / 435.50390625,
-        child: imageUrl.isEmpty
-            ? _imagePlaceholder()
-            : Image.network(
-                imageUrl,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return _imagePlaceholder(
+      child: imageUrl.isEmpty
+          ? AspectRatio(
+              aspectRatio: 326.6279296875 / 435.50390625,
+              child: _imagePlaceholder(),
+            )
+          : Image.network(
+              imageUrl,
+              width: double.infinity,
+              fit: BoxFit.fitWidth,
+              errorBuilder: (_, __, ___) => _imagePlaceholder(),
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return AspectRatio(
+                  aspectRatio: 326.6279296875 / 435.50390625,
+                  child: _imagePlaceholder(
                     child: const Center(
                       child: CircularProgressIndicator(
                         color: AppColors.primary,
                       ),
                     ),
-                  );
-                },
-              ),
-      ),
+                  ),
+                );
+              },
+            ),
     );
   }
 
