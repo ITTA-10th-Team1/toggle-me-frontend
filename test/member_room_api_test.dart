@@ -75,96 +75,115 @@ MemberApi client(Adapter adapter, MemoryTokens tokens) => MemberApi(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  for (final failVisibility in [false, true]) {
-    testWidgets(
-      'setup ${failVisibility ? 'retains screen on failed save' : 'saves selected visibility before entering room'}',
-      (tester) async {
-        FlutterSecureStorage.setMockInitialValues({
-          'pendingRoomVisibility': 'SOCIAL_OFF',
-        });
-        roomOnboardingDraft.reset();
-        final save = Completer<(int, Object?)>();
-        var creates = 0;
-        final adapter = Adapter((o) async {
-          switch (o.path) {
-            case '/api/v1/members/me':
-              return (200, {'profileCompleted': true});
-            case '/api/v1/furniture-types':
-              return (
-                200,
-                [
-                  {'id': 11, 'code': 'mirror', 'name': '거울'},
-                  {'id': 22, 'code': 'fridge', 'name': '냉장고'},
-                ],
-              );
-            case '/api/v1/furniture-types/11/variants':
-              return (
-                200,
-                [
-                  {'id': 101},
-                ],
-              );
-            case '/api/v1/furniture-types/22/variants':
-              return (
-                200,
-                [
-                  {'id': 202},
-                ],
-              );
-            case '/api/v1/members/onboarding':
-              creates++;
-              expect(o.data, {
-                'furnitureVariantIds': [101, 202],
-                'visibility': 'SOCIAL_OFF',
-              });
-              return save.future;
-            case '/api/v1/rooms/83/visibility':
-              expect(o.data, {'visibility': 'SOCIAL_OFF'});
-              return failVisibility
-                  ? (
-                      500,
-                      {'code': 'INTERNAL_SERVER_ERROR', 'message': '설정 저장 실패'},
-                    )
-                  : (200, {'visibility': 'SOCIAL_OFF'});
-          }
-          return (404, {'code': 'RESOURCE_NOT_FOUND'});
-        });
-        final router = GoRouter(
-          initialLocation: '/setup',
-          routes: [
-            GoRoute(
-              path: '/setup',
-              builder: (_, _) => MemberSetupScreen(
-                repository: RoomRepository(client(adapter, MemoryTokens())),
+  for (final autoStart in [false, true]) {
+    for (final failVisibility in [false, true]) {
+      testWidgets(
+        'setup auto=$autoStart ${failVisibility ? 'retains screen on failed save' : 'saves selected visibility before entering room'}',
+        (tester) async {
+          FlutterSecureStorage.setMockInitialValues({
+            'pendingRoomVisibility': 'SOCIAL_OFF',
+          });
+          roomOnboardingDraft.reset();
+          final save = Completer<(int, Object?)>();
+          var creates = 0;
+          final adapter = Adapter((o) async {
+            switch (o.path) {
+              case '/api/v1/members/me':
+                return (200, {'profileCompleted': true});
+              case '/api/v1/furniture-types':
+                return (
+                  200,
+                  [
+                    {'id': 11, 'code': 'mirror', 'name': '거울'},
+                    {'id': 22, 'code': 'fridge', 'name': '냉장고'},
+                  ],
+                );
+              case '/api/v1/furniture-types/11/variants':
+                return (
+                  200,
+                  [
+                    {'id': 101},
+                  ],
+                );
+              case '/api/v1/furniture-types/22/variants':
+                return (
+                  200,
+                  [
+                    {'id': 202},
+                  ],
+                );
+              case '/api/v1/members/onboarding':
+                creates++;
+                expect(o.data, {
+                  'furnitureVariantIds': [101, 202],
+                  'visibility': 'SOCIAL_OFF',
+                });
+                return save.future;
+              case '/api/v1/rooms/83/visibility':
+                expect(o.data, {'visibility': 'SOCIAL_OFF'});
+                return failVisibility
+                    ? (
+                        500,
+                        {
+                          'code': 'INTERNAL_SERVER_ERROR',
+                          'message': '설정 저장 실패',
+                        },
+                      )
+                    : (200, {'visibility': 'SOCIAL_OFF'});
+            }
+            return (404, {'code': 'RESOURCE_NOT_FOUND'});
+          });
+          final router = GoRouter(
+            initialLocation: '/setup',
+            routes: [
+              GoRoute(
+                path: '/setup',
+                builder: (_, _) => MemberSetupScreen(
+                  repository: RoomRepository(client(adapter, MemoryTokens())),
+                  autoStart: autoStart,
+                ),
               ),
-            ),
-            GoRoute(
-              path: '/room',
-              builder: (_, _) => const Scaffold(body: Text('saved-room')),
-            ),
-          ],
-        );
-        addTearDown(router.dispose);
-        await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('완료'));
-        await tester.pumpAndSettle();
-        expect(find.text('저장 중…'), findsOneWidget);
-        await tester.tap(find.byType(FilledButton));
-        await tester.pump();
-        expect(creates, 1);
-        save.complete((200, {'roomId': 83}));
-        await tester.pumpAndSettle();
-        expect(
-          find.text('saved-room'),
-          failVisibility ? findsNothing : findsOneWidget,
-        );
-        if (failVisibility) {
-          expect(find.text('설정 저장 실패'), findsOneWidget);
-          expect(find.text('완료'), findsOneWidget);
-        }
-      },
-    );
+              GoRoute(
+                path: '/room',
+                builder: (_, _) => const Scaffold(body: Text('saved-room')),
+              ),
+            ],
+          );
+          addTearDown(router.dispose);
+          await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+          if (autoStart) {
+            for (var i = 0; i < 30 && creates == 0; i++) {
+              await tester.pump(const Duration(milliseconds: 100));
+            }
+          } else {
+            await tester.pumpAndSettle();
+          }
+          if (!autoStart) {
+            await tester.tap(find.text('완료'));
+            await tester.pumpAndSettle();
+          }
+          if (!autoStart) {
+            expect(find.text('저장 중…'), findsOneWidget);
+            await tester.tap(find.byType(FilledButton));
+          } else {
+            expect(find.text('완료'), findsNothing);
+            expect(find.text('거울과 냉장고로 방을 시작해요.'), findsNothing);
+          }
+          await tester.pump();
+          expect(creates, 1);
+          save.complete((200, {'roomId': 83}));
+          await tester.pumpAndSettle();
+          expect(
+            find.text('saved-room'),
+            failVisibility ? findsNothing : findsOneWidget,
+          );
+          if (failVisibility) {
+            expect(find.text('설정 저장 실패'), findsOneWidget);
+            expect(find.text(autoStart ? '다시 시도' : '완료'), findsOneWidget);
+          }
+        },
+      );
+    }
   }
   test(
     'concurrent 401 responses rotate once and replay with the new token',

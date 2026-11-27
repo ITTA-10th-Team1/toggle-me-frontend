@@ -11,8 +11,11 @@ import '../data/room_onboarding_draft.dart';
 
 /// Profile and first-room submission. The walkthrough can be added separately.
 class MemberSetupScreen extends StatefulWidget {
-  const MemberSetupScreen({super.key, this.repository});
+  const MemberSetupScreen({super.key, this.repository, this.autoStart = false});
   final RoomRepository? repository;
+
+  /// Keep the original setup UI available, but skip it for completed profiles.
+  final bool autoStart;
   @override
   State<MemberSetupScreen> createState() => _MemberSetupScreenState();
 }
@@ -83,6 +86,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
           ..addAll(choices);
         loading = false;
       });
+      if (widget.autoStart && !needsProfile) await submit();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -131,7 +135,13 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
       await roomOnboardingDraft.clear();
       if (mounted) context.go(AppRoutes.room);
     } catch (e) {
-      if (mounted) showAppNotice(context, '$e');
+      if (mounted) {
+        if (widget.autoStart && !needsProfile) {
+          setState(() => error = '$e');
+        } else {
+          showAppNotice(context, '$e');
+        }
+      }
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -139,8 +149,10 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('내 방 시작하기')),
-    body: loading
+    appBar: widget.autoStart && (loading || !needsProfile)
+        ? null
+        : AppBar(title: const Text('내 방 시작하기')),
+    body: loading || (widget.autoStart && !needsProfile && error == null)
         ? const Center(child: CircularProgressIndicator())
         : error != null
         ? Center(
