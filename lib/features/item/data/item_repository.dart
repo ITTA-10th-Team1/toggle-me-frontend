@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:typed_data';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/image_upload_service.dart';
@@ -13,8 +13,8 @@ class ItemRepository {
   final ImageUploadService _imageUploadService;
 
   /// 이미지 업로드 후 imageKey 반환
-  Future<String> uploadImage(File image) {
-    return _imageUploadService.upload(image);
+  Future<String> uploadImage(Uint8List imageBytes) {
+    return _imageUploadService.upload(imageBytes);
   }
 
   /// AI 분석 요청

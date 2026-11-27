@@ -373,21 +373,26 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           },
           child: ClipRRect(
             borderRadius: BorderRadius.circular(5),
-            child: Image.network(
-              item.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: AppColors.darkIvory,
-                  child: const Center(
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      color: AppColors.textSecondary,
-                      size: 20,
+            child: Container(
+              color: AppColors.darkIvory,
+              width: double.infinity,
+              height: double.infinity,
+              child: Image.network(
+                item.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: AppColors.darkIvory,
+                    child: const Center(
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         );
