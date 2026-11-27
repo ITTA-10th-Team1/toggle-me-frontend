@@ -52,3 +52,8 @@ dart_defines.json
 
 # Local change backups
 /update-backups/
+
+# Local deployment tools
+.flutter-sdk/
+.vercel/
+.dart-pub-cache/
