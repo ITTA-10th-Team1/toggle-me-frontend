@@ -6,10 +6,12 @@ class RoomWebView extends StatelessWidget {
     required this.bridge,
     required this.onStatus,
     required this.onFurniture,
+    this.interactive = true,
   });
   final String bridge;
   final ValueChanged<String> onStatus;
   final ValueChanged<String> onFurniture;
+  final bool interactive;
 
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();

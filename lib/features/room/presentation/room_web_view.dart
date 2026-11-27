@@ -12,10 +12,12 @@ class RoomWebView extends StatefulWidget {
     required this.bridge,
     required this.onStatus,
     required this.onFurniture,
+    this.interactive = true,
   });
   final String bridge;
   final ValueChanged<String> onStatus;
   final ValueChanged<String> onFurniture;
+  final bool interactive;
 
   @override
   State<RoomWebView> createState() => _RoomWebViewState();
@@ -65,18 +67,28 @@ class _RoomWebViewState extends State<RoomWebView> {
   }
 
   @override
-  Widget build(BuildContext context) => HtmlElementView.fromTagName(
-    tagName: 'iframe',
-    onElementCreated: (element) {
-      final frame = element as web.HTMLIFrameElement;
-      _frame = frame;
-      frame.title = '3D room';
-      frame.style
-        ..border = '0'
-        ..width = '100%'
-        ..height = '100%'
-        ..display = 'block';
-      frame.srcdoc = roomWebDocument(Uri.base, widget.bridge).toJS;
-    },
-  );
+  Widget build(BuildContext context) {
+    // Browser iframe events do not bubble to Flutter overlays. Keep rendering
+    // the room, but let the canvas receive taps while a dialog/sheet covers it.
+    final pointerEvents =
+        widget.interactive && (ModalRoute.isCurrentOf(context) ?? true)
+        ? 'auto'
+        : 'none';
+    _frame?.style.pointerEvents = pointerEvents;
+    return HtmlElementView.fromTagName(
+      tagName: 'iframe',
+      onElementCreated: (element) {
+        final frame = element as web.HTMLIFrameElement;
+        _frame = frame;
+        frame.title = '3D room';
+        frame.style
+          ..border = '0'
+          ..width = '100%'
+          ..height = '100%'
+          ..display = 'block'
+          ..pointerEvents = pointerEvents;
+        frame.srcdoc = roomWebDocument(Uri.base, widget.bridge).toJS;
+      },
+    );
+  }
 }
