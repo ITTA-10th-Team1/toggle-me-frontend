@@ -128,11 +128,13 @@ final GoRouter appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.items,
-      builder: (context, state) => FeedScreen(
-        furnitureTypeId: int.parse(
-          state.uri.queryParameters['furnitureTypeId']!,
-        ),
-      ),
+      builder: (context, state) {
+        final id = int.tryParse(
+          state.uri.queryParameters['furnitureTypeId'] ?? '',
+        );
+        if (id == null || id <= 0) return _invalidLink(context);
+        return FeedScreen(key: ValueKey(id), furnitureTypeId: id);
+      },
     ),
 
     GoRoute(
@@ -143,8 +145,9 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.itemDetail,
       builder: (context, state) {
-        final itemId = int.parse(state.pathParameters['itemId']!);
-        return ItemDetailScreen(itemId: itemId);
+        final itemId = int.tryParse(state.pathParameters['itemId'] ?? '');
+        if (itemId == null || itemId <= 0) return _invalidLink(context);
+        return ItemDetailScreen(key: ValueKey(itemId), itemId: itemId);
       },
     ),
 
@@ -216,6 +219,21 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
       ),
+    ),
+  ),
+);
+
+Widget _invalidLink(BuildContext context) => Scaffold(
+  body: Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('잘못된 기록 주소예요. 방에서 다시 선택해 주세요.'),
+        TextButton(
+          onPressed: () => context.go(AppRoutes.room),
+          child: const Text('내 방으로'),
+        ),
+      ],
     ),
   ),
 );

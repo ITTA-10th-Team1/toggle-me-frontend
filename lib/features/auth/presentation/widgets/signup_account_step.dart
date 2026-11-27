@@ -25,7 +25,7 @@ class SignupAccountStep extends StatefulWidget {
   final Future<void> Function(SignupAccount account) onSubmit;
 
   /// 인증번호 입력 제한 시간
-  static const codeTimeLimit = Duration(minutes: 3);
+  static const codeTimeLimit = Duration(minutes: 10);
 
   @override
   State<SignupAccountStep> createState() => _SignupAccountStepState();

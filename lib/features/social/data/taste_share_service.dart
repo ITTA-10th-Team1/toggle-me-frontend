@@ -14,6 +14,8 @@ class TasteShareContent {
   //   카카오톡 메시지에 링크를 넣으려면 카카오 개발자 콘솔에 그 사이트 도메인을 등록해야 해요.
   static const link = String.fromEnvironment('SHARE_LINK_URL');
 
+  static bool get hasLink => link.isNotEmpty;
+
   /// 해시태그 한 줄. 예: '#데님 #빵'
   String get hashtagLine => tags.map((tag) => '#$tag').join(' ');
 
@@ -72,8 +74,10 @@ class KakaoTasteShareService implements TasteShareService {
     return Clipboard.setData(ClipboardData(text: content.text));
   }
 
-  Uri? get _linkUri =>
-      TasteShareContent.link.isEmpty ? null : Uri.parse(TasteShareContent.link);
+  // This is a service homepage, not a personal room permalink.
+  Uri get _linkUri => TasteShareContent.link.isEmpty
+      ? Uri.parse('https://www.toggleme.site')
+      : Uri.parse(TasteShareContent.link);
 
   /// SDK 초기화는 처음 공유할 때 한 번만 해요. (main.dart를 고치지 않으려고)
   Future<void> _ensureInitialized() async {

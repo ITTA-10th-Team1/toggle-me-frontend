@@ -1,3 +1,5 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:toggle_me/features/onboarding/data/room_onboarding_draft.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:toggle_me/app/app.dart';
 import 'package:toggle_me/app/router/app_router.dart';
@@ -5,6 +7,8 @@ import 'package:toggle_me/app/router/app_routes.dart';
 
 void main() {
   setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+    roomOnboardingDraft.reset();
     appRouter.go(AppRoutes.onboarding);
   });
 
@@ -46,4 +50,22 @@ void main() {
 
     expect(find.text('404 - 페이지를 찾을 수 없습니다.'), findsOneWidget);
   });
+  for (final path in [
+    '/items',
+    '/items?furnitureTypeId=oops',
+    '/items/invalid',
+    '/items/-1',
+  ]) {
+    testWidgets(
+      'invalid browser link $path shows recovery instead of throwing',
+      (tester) async {
+        await tester.pumpWidget(const ToggleMeApp());
+        await tester.pumpAndSettle();
+        appRouter.go(path);
+        await tester.pumpAndSettle();
+        expect(find.text('잘못된 기록 주소예요. 방에서 다시 선택해 주세요.'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 }

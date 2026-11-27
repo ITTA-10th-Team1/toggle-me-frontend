@@ -23,6 +23,7 @@ class KakaoAuthClient {
   /// 카카오 로그인 후 카카오 Access Token을 돌려줘요.
   /// 사용자가 취소하면 null을 돌려줘요. (설계서 상태 5: 오류 메시지 없음)
   Future<String?> login() async {
+    if (kIsWeb) throw const KakaoWebLoginUnavailableException();
     await _ensureInitialized();
 
     try {
@@ -89,4 +90,12 @@ class KakaoAppKeyMissingException implements Exception {
 
   @override
   String toString() => '카카오 키가 설정되지 않았어요. dart_defines.json을 확인해 주세요.';
+}
+
+/// SDK 2.x web login requires a server-side authorization-code exchange.
+/// The current backend only accepts native Kakao access tokens.
+class KakaoWebLoginUnavailableException implements Exception {
+  const KakaoWebLoginUnavailableException();
+  @override
+  String toString() => '웹 카카오 로그인은 준비 중이에요. 아이디로 로그인해 주세요.';
 }

@@ -1,3 +1,5 @@
+import '../../../../core/network/request_error_message.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../item/presentation/providers/item_upload_provider.dart';
@@ -73,7 +75,7 @@ class FeedState {
 }
 
 // 피드 Provider
-final feedProvider = NotifierProvider<FeedNotifier, FeedState>(
+final feedProvider = NotifierProvider.autoDispose<FeedNotifier, FeedState>(
   FeedNotifier.new,
 );
 
@@ -92,20 +94,11 @@ class FeedNotifier extends Notifier<FeedState> {
   @override
   FeedState build() {
     _repository = ref.read(feedRepositoryProvider);
+    ref.onDispose(() => _requestId++);
     return const FeedState();
   }
 
   /// 인증 토큰 적용
-  Future<void> _ensureAccessToken() async {
-    final tokenStorage = ref.read(tokenStorageProvider);
-    final token = await tokenStorage.getAccessToken();
-
-    if (token == null || token.isEmpty) {
-      throw Exception('로그인이 필요합니다.');
-    }
-
-    ref.read(apiClientProvider).setAccessToken(token);
-  }
 
   /// 최초 조회 및 새로고침
   Future<void> fetchInitial({int? furnitureTypeId}) async {
@@ -138,14 +131,12 @@ class FeedNotifier extends Notifier<FeedState> {
     }
 
     try {
-      await _ensureAccessToken();
-
       final items = await _repository.getAllItems(
         furnitureTypeId: selectedFurnitureTypeId,
         sort: currentSort.apiValue,
       );
 
-      if (requestId != _requestId) return;
+      if (!ref.mounted || requestId != _requestId) return;
 
       _nextCursor = items.isEmpty ? null : items.last.id;
 
@@ -156,9 +147,12 @@ class FeedNotifier extends Notifier<FeedState> {
         clearError: true,
       );
     } catch (e) {
-      if (requestId != _requestId) return;
+      if (!ref.mounted || requestId != _requestId) return;
 
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: requestErrorMessage(e),
+      );
     }
   }
 
@@ -187,8 +181,6 @@ class FeedNotifier extends Notifier<FeedState> {
     state = state.copyWith(isLoadingMore: true);
 
     try {
-      await _ensureAccessToken();
-
       final items = await _repository.getAllItems(
         furnitureTypeId: selectedFurnitureTypeId,
         sort: currentSort.apiValue,
@@ -196,7 +188,7 @@ class FeedNotifier extends Notifier<FeedState> {
       );
 
       // 정렬 변경 등으로 이전 요청이 무효화됐다면 응답 무시
-      if (requestId != _requestId) return;
+      if (!ref.mounted || requestId != _requestId) return;
 
       if (items.isEmpty) {
         _nextCursor = null;
@@ -214,9 +206,12 @@ class FeedNotifier extends Notifier<FeedState> {
         hasMore: items.length == 20,
       );
     } catch (e) {
-      if (requestId != _requestId) return;
+      if (!ref.mounted || requestId != _requestId) return;
 
-      state = state.copyWith(isLoadingMore: false, errorMessage: e.toString());
+      state = state.copyWith(
+        isLoadingMore: false,
+        errorMessage: requestErrorMessage(e),
+      );
     }
   }
 

@@ -29,9 +29,11 @@ class ImageUploadResult {
 }
 
 class ImageUploadService {
-  ImageUploadService(this._apiClient);
+  ImageUploadService(this._apiClient, {Dio Function()? uploadClientFactory})
+    : _uploadClientFactory = uploadClientFactory ?? (() => Dio());
 
   final ApiClient _apiClient;
+  final Dio Function() _uploadClientFactory;
 
   static const int maxFileSize = 10 * 1024 * 1024;
   static const int maxImageDimension = 1600;
@@ -40,31 +42,35 @@ class ImageUploadService {
   /// 이미지 바이트를 JPEG로 변환하고 크기 조절
   Future<Uint8List> _convertToJpeg(Uint8List bytes) async {
     if (bytes.isEmpty) {
-      throw Exception('이미지 파일이 비어 있습니다.');
+      throw const FormatException('이미지 파일이 비어 있어요. 다른 사진을 선택해 주세요.');
     }
 
     final decodedImage = img.decodeImage(bytes);
 
     if (decodedImage == null) {
-      throw Exception('이미지를 읽을 수 없습니다.');
+      throw const FormatException(
+        '이 사진 형식은 지원하지 않아요. JPEG 또는 PNG 사진을 선택해 주세요.',
+      );
     }
 
+    final orientedImage = img.bakeOrientation(decodedImage);
+
     final needsResize =
-        decodedImage.width > maxImageDimension ||
-        decodedImage.height > maxImageDimension;
+        orientedImage.width > maxImageDimension ||
+        orientedImage.height > maxImageDimension;
 
     final resizedImage = needsResize
         ? img.copyResize(
-            decodedImage,
-            width: decodedImage.width >= decodedImage.height
+            orientedImage,
+            width: orientedImage.width >= orientedImage.height
                 ? maxImageDimension
                 : null,
-            height: decodedImage.height > decodedImage.width
+            height: orientedImage.height > orientedImage.width
                 ? maxImageDimension
                 : null,
             maintainAspect: true,
           )
-        : decodedImage;
+        : orientedImage;
 
     return Uint8List.fromList(
       img.encodeJpg(resizedImage, quality: jpegQuality),
@@ -79,7 +85,7 @@ class ImageUploadService {
     }
 
     if (convertedBytes.length > maxFileSize) {
-      throw Exception('변환된 이미지가 10MB를 초과합니다.');
+      throw const FormatException('사진이 10MB를 초과해요. 더 작은 사진을 선택해 주세요.');
     }
 
     const contentType = 'image/jpeg';
@@ -93,14 +99,15 @@ class ImageUploadService {
       },
     );
 
-    print('이미지 업로드 URL 응답: ${response.data}');
-
     final uploadResult = ImageUploadResult.fromJson(
       Map<String, dynamic>.from(response.data),
     );
 
     // 2. S3에 JPEG 이미지 업로드
-    final s3Dio = Dio();
+    final s3Dio = _uploadClientFactory();
+    s3Dio.options.connectTimeout = const Duration(seconds: 30);
+    s3Dio.options.sendTimeout = const Duration(seconds: 60);
+    s3Dio.options.receiveTimeout = const Duration(seconds: 30);
     final headers = Map<String, dynamic>.from(uploadResult.headers);
 
     headers.putIfAbsent('Content-Type', () => contentType);

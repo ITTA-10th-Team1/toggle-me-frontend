@@ -360,11 +360,11 @@ void main() {
 
       await tester.tap(find.text('인증요청'));
       await _waitForService(tester);
-      expect(find.text('03:00'), findsOneWidget);
+      expect(find.text('10:00'), findsOneWidget);
       expect(find.text('재요청'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 1));
-      expect(find.text('02:59'), findsOneWidget);
+      expect(find.text('09:59'), findsOneWidget);
 
       await tester.enterText(_field(4), '111111');
       await tester.pump();
@@ -377,13 +377,13 @@ void main() {
       await tester.tap(find.text('확인'));
       await _waitForService(tester);
       expect(find.text('이메일 인증이 완료됐어요.'), findsOneWidget);
-      expect(find.text('02:59'), findsNothing); // 타이머 사라짐
+      expect(find.text('09:59'), findsNothing); // 타이머 사라짐
       expect(_enabled(tester, '인증요청'), isFalse);
 
       await tester.pumpAndSettle(); // 안내(스낵바) 정리
     });
 
-    testWidgets('3분이 지나면 인증번호를 확인할 수 없다', (tester) async {
+    testWidgets('10분이 지나면 인증번호를 확인할 수 없다', (tester) async {
       await _pumpSignup(tester, _RecordingService());
       await _goToAccountStep(tester);
 
@@ -395,7 +395,7 @@ void main() {
       await tester.pump();
       expect(_enabled(tester, '확인'), isTrue);
 
-      for (var i = 0; i < 180; i++) {
+      for (var i = 0; i < 600; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
       expect(find.text('인증 시간이 지났어요. 다시 요청해 주세요.'), findsOneWidget);
@@ -514,7 +514,7 @@ void main() {
       await _waitForService(tester);
 
       expect(find.text('이미 사용 중인 이메일입니다.'), findsOneWidget);
-      expect(find.text('03:00'), findsNothing); // 타이머 시작 안 함
+      expect(find.text('10:00'), findsNothing); // 타이머 시작 안 함
     });
   });
 
@@ -536,7 +536,7 @@ void main() {
       service.request.complete();
       await _waitForService(tester);
       expect(emailFieldEnabled(tester), isTrue); // 응답 후 다시 열림
-      expect(find.text('03:00'), findsOneWidget);
+      expect(find.text('10:00'), findsOneWidget);
     });
 
     testWidgets('인증요청 중 화면을 나간 뒤 서버 오류가 와도 앱 오류가 나지 않는다', (tester) async {

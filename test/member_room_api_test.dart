@@ -19,6 +19,7 @@ import 'package:toggle_me/features/room/domain/room_visibility.dart';
 class MemoryTokens extends TokenStorage {
   String? access = 'expired';
   String? refresh = 'refresh-old';
+  void Function()? afterSave;
   @override
   Future<String?> getAccessToken() async => access;
   @override
@@ -30,6 +31,7 @@ class MemoryTokens extends TokenStorage {
   }) async {
     access = accessToken;
     refresh = refreshToken;
+    afterSave?.call();
   }
 
   @override
@@ -275,6 +277,69 @@ void main() {
     expect(tokens.access, 'other-account');
   });
 
+  for (final logout in [false, true]) {
+    test(
+      'session ${logout ? 'logout' : 'switch'} after refresh save cancels replay',
+      () async {
+        final tokens = MemoryTokens();
+        tokens.afterSave = () {
+          tokens.access = logout ? null : 'account-b';
+          tokens.refresh = logout ? null : 'refresh-b';
+        };
+        final adapter = Adapter((options) {
+          if (options.path.endsWith('/refresh')) {
+            return (
+              200,
+              {'accessToken': 'fresh-a', 'refreshToken': 'refresh-a'},
+            );
+          }
+          return options.headers['Authorization'] == 'Bearer expired'
+              ? (401, {'code': 'UNAUTHORIZED'})
+              : (200, []);
+        });
+        await expectLater(
+          client(adapter, tokens).request('GET', '/a'),
+          throwsA(isA<MemberApiException>()),
+        );
+        expect(tokens.access, logout ? isNull : 'account-b');
+        expect(tokens.refresh, logout ? isNull : 'refresh-b');
+        expect(adapter.requests.length, 2);
+        expect(
+          adapter.requests.where(
+            (o) => o.headers['Authorization'] == 'Bearer account-b',
+          ),
+          isEmpty,
+        );
+      },
+    );
+  }
+
+  for (final refreshStatus in [200, 401]) {
+    test(
+      'changed access during refresh $refreshStatus is neither overwritten nor cleared',
+      () async {
+        final tokens = MemoryTokens();
+        final adapter = Adapter((options) {
+          if (options.path.endsWith('/refresh')) {
+            // Login writes access before refresh; observe that intermediate state.
+            tokens.access = 'account-b';
+            return refreshStatus == 200
+                ? (200, {'accessToken': 'fresh-a', 'refreshToken': 'refresh-a'})
+                : (401, {'code': 'INVALID_REFRESH_TOKEN'});
+          }
+          return (401, {'code': 'UNAUTHORIZED'});
+        });
+        await expectLater(
+          client(adapter, tokens).request('GET', '/a'),
+          throwsA(isA<MemberApiException>()),
+        );
+        expect(tokens.access, 'account-b');
+        expect(tokens.refresh, 'refresh-old');
+        expect(adapter.requests.length, 2);
+      },
+    );
+  }
+
   test('room uses returned room and floor IDs, preserves hidden furniture and empty tags', () async {
     final tokens = MemoryTokens();
     final adapter = Adapter(
@@ -358,9 +423,9 @@ void main() {
     final repo = FeedRepository(api);
     await repo.getAllItems(furnitureTypeId: 42, sort: 'OLDEST', cursor: 11);
     expect(adapter.requests.last.path, '/api/v1/items/feed');
-    expect(adapter.requests.last.queryParameters, {
+    expect(adapter.requests.last.uri.queryParameters, {
       'sort': 'OLDEST',
-      'furnitureTypeId': 42,
+      'furnitureTypeId': '42',
       'cursor': '11',
     });
     await repo.getAllItems();
