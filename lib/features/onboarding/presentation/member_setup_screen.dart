@@ -62,7 +62,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
         session: _autoSession,
       );
       final supported = all
-          .where((e) => e['code'] == 'mirror' || e['code'] == 'fridge')
+          .where((e) => const {'mirror', 'fridge', 'desk'}.contains(e['code']))
           .toList();
       final choices = <int, int>{};
       for (final type in supported) {
@@ -79,7 +79,9 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
         choices[(type['id'] as num).toInt()] = (variants.single['id'] as num)
             .toInt();
       }
-      if (supported.length != 2) {
+      if (!const {'mirror', 'fridge'}.every(
+        (code) => supported.any((type) => type['code'] == code),
+      )) {
         throw const MemberApiException(
           'FURNITURE_MISSING',
           '거울·냉장고 정보를 확인하지 못했어요.',
@@ -206,7 +208,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
                   ),
                   const SizedBox(height: 24),
                 ],
-                const Text('거울과 냉장고로 방을 시작해요.'),
+                const Text('기본 가구로 방을 시작해요.'),
                 for (final type in types)
                   ListTile(
                     leading: const Icon(Icons.check_circle_outline),
