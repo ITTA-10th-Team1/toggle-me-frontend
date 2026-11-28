@@ -193,6 +193,9 @@ void main() {
     'exhausted',
     'account-switch',
     'switch-before-profile',
+    'refresh-on-me',
+    'refresh-on-profile',
+    'refresh-on-room',
   ]) {
     testWidgets('automatic first profile: $scenario', (tester) async {
       FlutterSecureStorage.setMockInitialValues({});
@@ -200,8 +203,25 @@ void main() {
       final tokens = MemoryTokens();
       var profileSaved = false, failed = false;
       var checks = 0, patches = 0, creates = 0;
+      var rotations = 0;
       final handles = <String>{};
       final adapter = Adapter((o) {
+        if (o.uri.path.endsWith('/refresh')) {
+          rotations++;
+          return (
+            200,
+            {'accessToken': 'fresh-a', 'refreshToken': 'fresh-refresh-a'},
+          );
+        }
+        final refreshPath = switch (scenario) {
+          'refresh-on-me' => '/api/v1/members/me',
+          'refresh-on-profile' => '/api/v1/members/me/profile',
+          'refresh-on-room' => '/api/v1/members/onboarding',
+          _ => '',
+        };
+        if (o.uri.path == refreshPath && rotations == 0) {
+          return (401, {'code': 'UNAUTHORIZED'});
+        }
         switch (o.uri.path) {
           case '/api/v1/members/me':
             return (

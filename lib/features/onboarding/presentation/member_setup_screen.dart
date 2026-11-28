@@ -29,7 +29,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
   List<Map<String, dynamic>> types = [];
   bool loading = true, saving = false, needsProfile = true;
   String? error;
-  String? _autoAccess, _autoRefresh;
+  MemberApiSession? _autoSession;
   RoomVisibility visibility = roomOnboardingDraft.visibility;
 
   @override
@@ -54,11 +54,13 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
       await roomOnboardingDraft.restore();
       visibility = roomOnboardingDraft.visibility;
       if (widget.autoStart) {
-        _autoAccess = await repo.api.accessToken();
-        _autoRefresh = await repo.api.tokens.getRefreshToken();
+        _autoSession = await repo.api.captureSession(isActive: () => mounted);
       }
-      final me = await repo.me();
-      final all = await repo.list('/api/v1/furniture-types');
+      final me = await repo.me(session: _autoSession);
+      final all = await repo.list(
+        '/api/v1/furniture-types',
+        session: _autoSession,
+      );
       final supported = all
           .where((e) => e['code'] == 'mirror' || e['code'] == 'fridge')
           .toList();
@@ -66,6 +68,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
       for (final type in supported) {
         final variants = await repo.list(
           '/api/v1/furniture-types/${type['id']}/variants',
+          session: _autoSession,
         );
         if (variants.length != 1) {
           throw const MemberApiException(
@@ -109,12 +112,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
     try {
       if (needsProfile) {
         if (widget.autoStart) {
-          await AutomaticMemberProfile(repo.api).save(
-            nickname.text,
-            isActive: () => mounted,
-            expectedAccess: _autoAccess!,
-            expectedRefresh: _autoRefresh,
-          );
+          await AutomaticMemberProfile(_autoSession!).save(nickname.text);
         } else {
           final available = await repo.api.request(
             'GET',
@@ -143,11 +141,16 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
         if (!mounted) return;
         setState(() => needsProfile = false);
       }
-      final id = await repo.create(selected.values.toList(), visibility);
+      final id = await repo.create(
+        selected.values.toList(),
+        visibility,
+        session: _autoSession,
+      );
       // Existing/temporarily auto-created rooms ignore onboarding visibility.
       // Explicitly save the user's current choice after a successful submission.
-      await repo.visibility(id, visibility);
+      await repo.visibility(id, visibility, session: _autoSession);
       await roomOnboardingDraft.clear();
+      await _autoSession?.ensureActive();
       if (mounted) context.go(AppRoutes.room);
     } catch (e) {
       if (mounted) {
