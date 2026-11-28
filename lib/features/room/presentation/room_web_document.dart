@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'room_camera_config.dart';
+import 'room_weather_preview.dart';
 import 'room_lighting_config.dart';
 
 /// A real document is needed: scripts inserted with innerHTML do not execute.
@@ -37,6 +38,7 @@ globalThis.RoomStatus = {postMessage: value => send('RoomStatus', value)};
 globalThis.RoomFurniture = {postMessage: value => send('RoomFurniture', value)};
 window.addEventListener('error', () => send('RoomStatus', 'error'));
 window.addEventListener('unhandledrejection', () => send('RoomStatus', 'error'));
+${roomWeatherPreview.replaceAll('</', r'<\/')}
 ${bridge.replaceAll('</', r'<\/')}
 </script>
 <script type="module" src="$script" onerror="RoomStatus.postMessage('error')"></script>
