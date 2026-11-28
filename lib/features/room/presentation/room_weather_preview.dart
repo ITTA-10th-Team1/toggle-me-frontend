@@ -14,8 +14,6 @@ const roomWeatherPreview = r"""
     #weather-layer[data-mode=snow] i {width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 3px #b1c8dc;animation-name:weather-snow}
     @keyframes weather-fall {to {transform:translate(-65px,var(--fall))}}
     @keyframes weather-snow {50% {transform:translate(20px,calc(var(--fall) * .5))}to {transform:translate(-15px,var(--fall))}}
-    @media(prefers-reduced-motion:reduce) {#weather-layer i {animation-play-state:paused}}
-    body.weather-paused #weather-layer i {animation-play-state:paused}
   `;
   document.head.append(style);
   const layer = document.createElement('div');
@@ -44,8 +42,6 @@ const roomWeatherPreview = r"""
     const button=document.createElement('button');button.type='button';button.textContent=label;button.dataset.mode=mode;
     button.addEventListener('click',()=>setMode(mode));controls.append(button);
   }
-  const pause=()=>document.body.classList.toggle('weather-paused',document.hidden);
-  document.addEventListener('visibilitychange',pause);pause();
   document.body.append(layer,controls);setMode('off');
 })();
 """;
