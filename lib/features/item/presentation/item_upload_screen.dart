@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:toggle_me/app/theme/app_colors.dart';
 
@@ -31,24 +32,31 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 
   final List<_CategoryItem> _categories = const [
     _CategoryItem('화장대'),
-    _CategoryItem('거울', imagePath: 'assets/images/img_upload_mirror.png'),
+    _CategoryItem(
+      '거울',
+      code: 'mirror',
+      imagePath: 'assets/images/img_upload_mirror.png',
+    ),
     _CategoryItem('TV'),
     _CategoryItem(
       '냉장고',
+      code: 'fridge',
       imagePath: 'assets/images/img_upload_refrigerator.png',
     ),
-    _CategoryItem('책상'),
+    _CategoryItem(
+      '책상',
+      code: 'desk',
+      imagePath: 'assets/images/img_upload_desk.svg',
+    ),
   ];
 
   int? get _selectedFurnitureTypeId {
-    switch (_selectedCategory) {
-      case 1:
-        return 1; // 거울
-      case 3:
-        return 2; // 냉장고
-      default:
-        return null; // 아직 ID를 모르는 가구
-    }
+    final index = _selectedCategory;
+    if (index == null) return null;
+    return ref
+        .read(recordingFurnitureProvider)
+        .asData
+        ?.value[_categories[index].code];
   }
 
   @override
@@ -430,6 +438,7 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
   }
 
   Widget _buildCategorySection(ItemUploadState state) {
+    final catalog = ref.watch(recordingFurnitureProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -449,6 +458,15 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
                 onTap: state.isSubmitting
                     ? null
                     : () {
+                        if (catalog.isLoading) {
+                          _showMessage('가구 정보를 불러오고 있어요. 잠시 후 다시 선택해 주세요.');
+                          return;
+                        }
+                        if (category.code == null ||
+                            catalog.asData?.value[category.code] == null) {
+                          _showMessage('${category.name}은 아직 방에 배치되지 않았어요.');
+                          return;
+                        }
                         if (state.selectedImage != null) {
                           _showMessage('가구를 변경하려면 선택한 사진을 먼저 삭제해 주세요.');
                           return;
@@ -502,6 +520,11 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
             },
           ),
         ),
+        if (catalog.hasError)
+          TextButton(
+            onPressed: () => ref.invalidate(recordingFurnitureProvider),
+            child: const Text('가구 정보를 불러오지 못했어요. 다시 시도'),
+          ),
       ],
     );
   }
@@ -511,6 +534,14 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
       return const SizedBox(width: 42, height: 42);
     }
 
+    if (category.imagePath!.endsWith('.svg')) {
+      return SvgPicture.asset(
+        category.imagePath!,
+        width: 42,
+        height: 42,
+        fit: BoxFit.contain,
+      );
+    }
     return Image.asset(
       category.imagePath!,
       width: 42,
@@ -800,9 +831,10 @@ class _ItemUploadScreenState extends ConsumerState<ItemUploadScreen> {
 }
 
 class _CategoryItem {
-  const _CategoryItem(this.name, {this.imagePath});
+  const _CategoryItem(this.name, {this.code, this.imagePath});
 
   final String name;
+  final String? code;
   final String? imagePath;
 }
 

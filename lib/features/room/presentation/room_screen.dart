@@ -22,8 +22,7 @@ import '../domain/room_data.dart';
 import '../../guide/presentation/guide_book_icon.dart';
 import 'room_action_icon.dart';
 
-/// 중간 발표용 방: 거울·냉장고 고정 배치, 고정 카메라와 가구 터치.
-/// 나머지 세 가구는 미배치 상태로 표시합니다.
+/// 고정 카메라와 가구 터치. 실제 회원의 가구 표시는 서버 배치를 따릅니다.
 class RoomScreen extends StatefulWidget {
   const RoomScreen({
     super.key,
@@ -56,7 +55,7 @@ class RoomScreen extends StatefulWidget {
   final VoidCallback? onEdit;
   final ValueChanged<String>? onCategory;
 
-  /// Pinboard integration callback. Stable IDs: mirror, fridge.
+  /// Pinboard integration callback. Stable codes: mirror, fridge, desk.
   /// onCategory remains as a fallback for the existing router.
   final ValueChanged<String>? onFurnitureTap;
 
@@ -141,18 +140,20 @@ class _RoomScreenState extends State<RoomScreen> {
 
   void _openFurniture(String id) {
     if (!_isPlaced(id)) return;
-    if (id != 'mirror' && id != 'fridge') return;
+    const names = {'mirror': '거울', 'fridge': '냉장고', 'desk': '책상'};
+    final name = names[id];
+    if (name == null) return;
     if (widget.onFurnitureTap != null) {
       widget.onFurnitureTap!(id);
     } else if (widget.onCategory != null) {
-      widget.onCategory!(id == 'mirror' ? '거울' : '냉장고');
+      widget.onCategory!(name);
     } else {
-      _showFurnitureDetails((id == 'mirror' ? '거울' : '냉장고', id));
+      _showFurnitureDetails((name, id));
     }
   }
 
   bool _isPlaced(String id) => widget.furniture == null
-      ? id == 'mirror' || id == 'fridge'
+      ? id == 'mirror' || id == 'fridge' || id == 'desk'
       : widget.furniture!.any((e) => e.code == id && !e.hidden);
 
   void _showFurnitureDetails((String, String) category) {

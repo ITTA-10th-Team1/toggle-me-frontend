@@ -49,7 +49,7 @@ class _RoomWebViewState extends State<RoomWebView> {
           widget.onStatus(value);
         }
         if (data['channel'] == 'RoomFurniture' &&
-            (value == 'mirror' || value == 'fridge')) {
+            (value == 'mirror' || value == 'fridge' || value == 'desk')) {
           widget.onFurniture(value);
         }
       } on FormatException {

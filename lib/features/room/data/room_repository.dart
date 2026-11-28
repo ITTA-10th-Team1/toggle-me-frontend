@@ -32,21 +32,30 @@ class RoomRepository {
     if (rooms.isEmpty) return null;
     final room = rooms.first;
     final id = (room['id'] as num).toInt();
-    final floors = await list('/api/v1/rooms/$id/floors');
+    final furniture = await furnitureForRoom(id);
+    final tags = await list('/api/v1/rooms/$id/tags');
+    return RoomData(
+      id: id,
+      visibility: RoomVisibility.parse(room['visibility'] as String),
+      furniture: furniture,
+      tags: tags,
+    );
+  }
+
+  Future<List<RoomFurniture>> furnitureForRoom(
+    int id, {
+    MemberApiSession? session,
+  }) async {
+    final floors = await list('/api/v1/rooms/$id/floors', session: session);
     final floor = floors.where((e) => e['floorNumber'] == 1).firstOrNull;
     if (floor == null) {
       throw const MemberApiException('FLOOR_MISSING', '방의 1층 정보를 찾지 못했어요.');
     }
     final furniture = await list(
       '/api/v1/rooms/$id/floors/${floor['id']}/furniture',
+      session: session,
     );
-    final tags = await list('/api/v1/rooms/$id/tags');
-    return RoomData(
-      id: id,
-      visibility: RoomVisibility.parse(room['visibility'] as String),
-      furniture: furniture.map(RoomFurniture.fromJson).toList(),
-      tags: tags,
-    );
+    return furniture.map(RoomFurniture.fromJson).toList();
   }
 
   Future<RoomVisibility> visibility(
