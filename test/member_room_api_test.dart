@@ -185,6 +185,172 @@ void main() {
       );
     }
   }
+  for (final scenario in [
+    'success',
+    'duplicate',
+    'network',
+    'room-failure',
+    'exhausted',
+    'account-switch',
+    'switch-before-profile',
+  ]) {
+    testWidgets('automatic first profile: $scenario', (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      roomOnboardingDraft.reset();
+      final tokens = MemoryTokens();
+      var profileSaved = false, failed = false;
+      var checks = 0, patches = 0, creates = 0;
+      final handles = <String>{};
+      final adapter = Adapter((o) {
+        switch (o.uri.path) {
+          case '/api/v1/members/me':
+            return (
+              200,
+              {'profileCompleted': profileSaved, 'nickname': '기존 닉네임'},
+            );
+          case '/api/v1/furniture-types':
+            return (
+              200,
+              [
+                {'id': 11, 'code': 'mirror', 'name': '거울'},
+                {'id': 22, 'code': 'fridge', 'name': '냉장고'},
+              ],
+            );
+          case '/api/v1/furniture-types/11/variants':
+            return (
+              200,
+              [
+                {'id': 101},
+              ],
+            );
+          case '/api/v1/furniture-types/22/variants':
+            if (scenario == 'switch-before-profile') {
+              tokens.access = 'other-account';
+              tokens.refresh = 'other-refresh';
+            }
+            return (
+              200,
+              [
+                {'id': 202},
+              ],
+            );
+          case '/api/v1/members/handle-availability':
+            checks++;
+            final handle = o.uri.queryParameters['handle']!;
+            expect(handle, matches(RegExp(r'^tm_[a-z0-9]{12}$')));
+            expect(handles.add(handle), isTrue);
+            if (scenario == 'account-switch') {
+              tokens.access = 'other-account';
+              tokens.refresh = 'other-refresh';
+            }
+            return (
+              200,
+              {
+                'available':
+                    !(scenario == 'exhausted' ||
+                        (scenario == 'duplicate' && checks == 1)),
+                'reason': 'DUPLICATED',
+              },
+            );
+          case '/api/v1/members/me/profile':
+            patches++;
+            expect(o.data['nickname'], '기존 닉네임');
+            expect(handles, contains(o.data['handle']));
+            if (scenario == 'duplicate' && patches == 1) {
+              return (409, {'code': 'HANDLE_ALREADY_EXISTS'});
+            }
+            if (scenario == 'network' && !failed) {
+              failed = true;
+              return (500, {'code': 'INTERNAL_SERVER_ERROR'});
+            }
+            profileSaved = true;
+            return (200, {'profileCompleted': true});
+          case '/api/v1/members/onboarding':
+            creates++;
+            expect(profileSaved, isTrue);
+            if (scenario == 'room-failure' && !failed) {
+              failed = true;
+              return (500, {'code': 'INTERNAL_SERVER_ERROR'});
+            }
+            return (200, {'roomId': 83});
+          case '/api/v1/rooms/83/visibility':
+            return (200, {'visibility': 'SOCIAL_ON'});
+          default:
+            return (404, {'code': 'RESOURCE_NOT_FOUND'});
+        }
+      });
+      final router = GoRouter(
+        initialLocation: '/setup',
+        routes: [
+          GoRoute(
+            path: '/setup',
+            builder: (_, _) => MemberSetupScreen(
+              repository: RoomRepository(client(adapter, tokens)),
+              autoStart: true,
+            ),
+          ),
+          GoRoute(
+            path: '/room',
+            builder: (_, _) => const Scaffold(body: Text('saved-room')),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      for (
+        var i = 0;
+        i < 30 &&
+            find.text('saved-room').evaluate().isEmpty &&
+            find.text('다시 시도').evaluate().isEmpty;
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('내 방 시작하기'), findsNothing);
+      if (scenario == 'network' || scenario == 'room-failure') {
+        expect(find.text('다시 시도'), findsOneWidget);
+        await tester.tap(find.text('다시 시도'));
+        for (
+          var i = 0;
+          i < 30 && find.text('saved-room').evaluate().isEmpty;
+          i++
+        ) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
+      if (scenario == 'exhausted' ||
+          scenario == 'account-switch' ||
+          scenario == 'switch-before-profile') {
+        expect(find.text('다시 시도'), findsOneWidget);
+        expect(patches, 0);
+        expect(creates, 0);
+        expect(
+          checks,
+          scenario == 'exhausted'
+              ? 5
+              : scenario == 'switch-before-profile'
+              ? 0
+              : 1,
+        );
+      } else {
+        expect(find.text('saved-room'), findsOneWidget);
+        expect(
+          checks,
+          scenario == 'duplicate'
+              ? 3
+              : scenario == 'network'
+              ? 2
+              : 1,
+        );
+        expect(
+          patches,
+          scenario == 'duplicate' || scenario == 'network' ? 2 : 1,
+        );
+      }
+    });
+  }
+
   test(
     'concurrent 401 responses rotate once and replay with the new token',
     () async {

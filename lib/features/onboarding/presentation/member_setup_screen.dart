@@ -8,13 +8,14 @@ import '../../../core/widgets/room_mode_toggle.dart';
 import '../../room/data/room_repository.dart';
 import '../../room/domain/room_visibility.dart';
 import '../data/room_onboarding_draft.dart';
+import '../data/automatic_member_profile.dart';
 
 /// Profile and first-room submission. The walkthrough can be added separately.
 class MemberSetupScreen extends StatefulWidget {
   const MemberSetupScreen({super.key, this.repository, this.autoStart = false});
   final RoomRepository? repository;
 
-  /// Keep the original setup UI available, but skip it for completed profiles.
+  /// Retain the manual UI, but prepare the profile and room automatically.
   final bool autoStart;
   @override
   State<MemberSetupScreen> createState() => _MemberSetupScreenState();
@@ -28,6 +29,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
   List<Map<String, dynamic>> types = [];
   bool loading = true, saving = false, needsProfile = true;
   String? error;
+  String? _autoAccess, _autoRefresh;
   RoomVisibility visibility = roomOnboardingDraft.visibility;
 
   @override
@@ -51,6 +53,10 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
     try {
       await roomOnboardingDraft.restore();
       visibility = roomOnboardingDraft.visibility;
+      if (widget.autoStart) {
+        _autoAccess = await repo.api.accessToken();
+        _autoRefresh = await repo.api.tokens.getRefreshToken();
+      }
       final me = await repo.me();
       final all = await repo.list('/api/v1/furniture-types');
       final supported = all
@@ -86,7 +92,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
           ..addAll(choices);
         loading = false;
       });
-      if (widget.autoStart && !needsProfile) await submit();
+      if (widget.autoStart) await submit();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -102,29 +108,38 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
     setState(() => saving = true);
     try {
       if (needsProfile) {
-        final available = await repo.api.request(
-          'GET',
-          Uri(
-            path: '/api/v1/members/handle-availability',
-            queryParameters: {'handle': handle.text.trim()},
-          ).toString(),
-        );
-        if (available['available'] != true) {
-          final reason = available['reason'];
-          throw MemberApiException('HANDLE_UNAVAILABLE', switch (reason) {
-            'DUPLICATED' => '이미 사용 중인 ID예요.',
-            'RESERVED' => '사용할 수 없는 ID예요.',
-            _ => 'ID는 영문 소문자·숫자·밑줄 3~20자로 입력해 주세요.',
-          });
+        if (widget.autoStart) {
+          await AutomaticMemberProfile(repo.api).save(
+            nickname.text,
+            isActive: () => mounted,
+            expectedAccess: _autoAccess!,
+            expectedRefresh: _autoRefresh,
+          );
+        } else {
+          final available = await repo.api.request(
+            'GET',
+            Uri(
+              path: '/api/v1/members/handle-availability',
+              queryParameters: {'handle': handle.text.trim()},
+            ).toString(),
+          );
+          if (available['available'] != true) {
+            final reason = available['reason'];
+            throw MemberApiException('HANDLE_UNAVAILABLE', switch (reason) {
+              'DUPLICATED' => '이미 사용 중인 ID예요.',
+              'RESERVED' => '사용할 수 없는 ID예요.',
+              _ => 'ID는 영문 소문자·숫자·밑줄 3~20자로 입력해 주세요.',
+            });
+          }
+          await repo.api.request(
+            'PATCH',
+            '/api/v1/members/me/profile',
+            data: {
+              'nickname': nickname.text.trim(),
+              'handle': handle.text.trim(),
+            },
+          );
         }
-        await repo.api.request(
-          'PATCH',
-          '/api/v1/members/me/profile',
-          data: {
-            'nickname': nickname.text.trim(),
-            'handle': handle.text.trim(),
-          },
-        );
         if (!mounted) return;
         setState(() => needsProfile = false);
       }
@@ -136,7 +151,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
       if (mounted) context.go(AppRoutes.room);
     } catch (e) {
       if (mounted) {
-        if (widget.autoStart && !needsProfile) {
+        if (widget.autoStart) {
           setState(() => error = '$e');
         } else {
           showAppNotice(context, '$e');
@@ -149,10 +164,8 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: widget.autoStart && (loading || !needsProfile)
-        ? null
-        : AppBar(title: const Text('내 방 시작하기')),
-    body: loading || (widget.autoStart && !needsProfile && error == null)
+    appBar: widget.autoStart ? null : AppBar(title: const Text('내 방 시작하기')),
+    body: loading || (widget.autoStart && error == null)
         ? const Center(child: CircularProgressIndicator())
         : error != null
         ? Center(
