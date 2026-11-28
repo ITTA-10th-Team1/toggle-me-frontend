@@ -10,6 +10,7 @@ import '../../data/item_recommendation_storage.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/member_api.dart';
 import '../../../auth/data/token_storage.dart';
+import '../../../room/data/room_repository.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient(
@@ -25,6 +26,28 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepository(ref.watch(apiClientProvider));
 });
+
+/// Recording is allowed only for a real, visible furniture entry in my room.
+/// In particular, do not invent a desk ID before the server registers it.
+final recordingRoomRepositoryProvider = Provider<RoomRepository>(
+  (ref) => RoomRepository(memberApi),
+);
+final recordingFurnitureProvider = FutureProvider.autoDispose<Map<String, int>>(
+  (ref) async {
+    final repo = ref.watch(recordingRoomRepositoryProvider);
+    final session = await repo.api.captureSession(isActive: () => ref.mounted);
+    final rooms = await repo.list('/api/v1/rooms', session: session);
+    if (rooms.isEmpty) return {};
+    final furniture = await repo.furnitureForRoom(
+      (rooms.first['id'] as num).toInt(),
+      session: session,
+    );
+    return {
+      for (final item in furniture)
+        if (!item.hidden) item.code: item.typeId,
+    };
+  },
+);
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) {
   return TokenStorage();

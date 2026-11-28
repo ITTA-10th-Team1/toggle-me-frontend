@@ -20,6 +20,7 @@ const roomSceneBridge = r'''
     if (globalThis[channel]?.postMessage) globalThis[channel].postMessage(value);
   };
   const meshCategories = new Map();
+  const furnitureNodes = {stand: 'mirror', body: 'fridge', desk: 'desk'};
   const placements = null;
   const mark = (json, index, category, visited = new Set()) => {
     if (visited.has(index)) return;
@@ -50,7 +51,7 @@ const roomSceneBridge = r'''
       scene.traverse(node => { if (node.name) nodes.set(node.name, node); });
       const applied = new Set();
       for (const item of placements) {
-        if (!['mirror', 'fridge'].includes(item.furnitureTypeCode)) continue;
+        if (!['mirror', 'fridge', 'desk'].includes(item.furnitureTypeCode)) continue;
         const node = nodes.get(item.objectNodeName);
         if (!node) { post('RoomStatus', 'error'); return; }
         applied.add(item.objectNodeName);
@@ -59,8 +60,9 @@ const roomSceneBridge = r'''
         let s = item.scale;
         // The current bundled GLB already has these old export scales baked in.
         // Accept both legacy rooms and corrected server data during migration.
-        const legacy = item.furnitureTypeCode === 'mirror' ? [0.25, 1, 0.55] : [0.3, 1, 0.55];
-        if (s && [s.x, s.y, s.z].every((v, i) =>
+        const legacy = item.furnitureTypeCode === 'mirror' ? [0.25, 1, 0.55] :
+          item.furnitureTypeCode === 'fridge' ? [0.3, 1, 0.55] : null;
+        if (legacy && s && [s.x, s.y, s.z].every((v, i) =>
             Number.isFinite(v) && Math.abs(v - legacy[i]) < 0.00001)) {
           const original = json?.nodes?.find(n => n.name === item.objectNodeName);
           if (!original) { post('RoomStatus', 'error'); return; }
@@ -77,17 +79,16 @@ const roomSceneBridge = r'''
         node.updateMatrixWorld(true);
       }
       // Missing furniture must not remain visible from the bundled GLB.
-      for (const name of ['stand', 'body']) {
+      for (const name of Object.keys(furnitureNodes)) {
         if (!applied.has(name) && nodes.has(name)) nodes.get(name).visible = false;
       }
       scene.queueRender?.();
     }
     if (json?.nodes) {
       json.nodes.forEach((node, index) => {
-        // Current designer GLB: stand owns mirror and frame;
-        // body owns the refrigerator doors and handles.
-        if (node.name === 'stand') mark(json, index, 'mirror');
-        if (node.name === 'body') mark(json, index, 'fridge');
+        // The desk root owns the chair, drawers and both shelf assemblies.
+        const category = furnitureNodes[node.name];
+        if (category) mark(json, index, category);
       });
     }
     post('RoomStatus', 'loaded');

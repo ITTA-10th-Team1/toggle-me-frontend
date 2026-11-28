@@ -1,0 +1,93 @@
+{
+  "layoutVersion": "desk-01-preserve-existing",
+  "modelAsset": "assets/models/toggleme_room.glb",
+  "modelSha256": "e2933d41fae645ff05d7568b8cfc0565cb2ba26b5282e3dde9a7f7cb63718973",
+  "sourceGlbSha256": "aa4b90f613143e2b0fe02d93c8d68652b75f0ec92b05352dc8dea0d360ca0ce0",
+  "furnitureType": {
+    "id": 3,
+    "code": "desk",
+    "name": "책상",
+    "displayOrder": 3,
+    "status": "ACTIVE"
+  },
+  "furnitureVariant": {
+    "id": 3,
+    "furnitureTypeId": 3,
+    "name": "기본 책상",
+    "assetObjectKey": "assets/models/toggleme_room.glb",
+    "objectNodeName": "desk",
+    "widthUnits": 1,
+    "heightUnits": 1,
+    "status": "ACTIVE"
+  },
+  "roomFurniture": {
+    "furnitureTypeId": 3,
+    "furnitureTypeCode": "desk",
+    "objectNodeName": "desk",
+    "position": {
+      "x": -1.4908016920089722,
+      "y": 0.385222852230072,
+      "z": -0.021670036017894745
+    },
+    "rotationQuaternion": {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "renderOrder": 3,
+    "hidden": false,
+    "variantId": 3
+  },
+  "preservedNodes": {
+    "stand": {
+      "translation": [
+        -1.3948961734771728,
+        0.38799723982810974,
+        1.667795181274414
+      ],
+      "rotation": [
+        0.5865176320075989,
+        0.39496466517448425,
+        -0.5865176320075989,
+        0.39496463537216187
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    "body": {
+      "translation": [
+        1.1741273403167725,
+        1.186818853020668,
+        -1.438000932456924
+      ],
+      "rotation": [
+        0,
+        -0.7071065902709961,
+        0,
+        0.7071069478988647
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  },
+  "backendChecklist": [
+    "Register desk type and variant; proposed IDs are 3. If occupied, return actual IDs; frontend uses server IDs.",
+    "Set furniture_type placement from roomFurniture; desk is the parent of desk, chair and shelves.",
+    "Add an active desk entry to existing first floors without changing existing furniture or overriding a previously hidden desk.",
+    "Return desk in catalog and my-room furniture response with hidden=false for a placed desk.",
+    "Verify standard image analysis, item create/detail/feed and room tag APIs accept the new active desk type.",
+    "No mirror/fridge position, rotation, scale or IDs need to change."
+  ]
+}
