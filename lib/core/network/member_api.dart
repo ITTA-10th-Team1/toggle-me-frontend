@@ -13,6 +13,30 @@ class MemberApi {
   final TokenStorage tokens;
   Future<_TokenRotation>? _refreshing;
   _TokenRotation? _lastRotation;
+  _SessionIdentity? _sessionIdentity;
+
+  /// A capability for a multi-request operation. It follows only token rotations
+  /// validated by this client, and never adopts another login's stored tokens.
+  Future<MemberApiSession> captureSession({bool Function()? isActive}) async {
+    final pending = _refreshing;
+    if (pending != null) await pending;
+    final access = await accessToken();
+    final refresh = await tokens.getRefreshToken();
+    if (await tokens.getAccessToken() != access ||
+        await tokens.getRefreshToken() != refresh) {
+      throw _sessionChanged;
+    }
+    var identity = _sessionIdentity;
+    if (identity == null ||
+        identity.access != access ||
+        identity.refresh != refresh) {
+      identity = _SessionIdentity(access, refresh);
+      _sessionIdentity = identity;
+    }
+    final session = MemberApiSession._(this, identity, isActive ?? () => true);
+    await session.ensureActive();
+    return session;
+  }
 
   Future<bool> get hasSession async =>
       (await tokens.getAccessToken())?.isNotEmpty == true ||
@@ -139,6 +163,13 @@ class MemberApi {
       );
       await _validatedAccess(rotation);
       _lastRotation = rotation;
+      final identity = _sessionIdentity;
+      if (identity != null &&
+          identity.access == previousAccess &&
+          identity.refresh == refresh) {
+        identity.access = rotation.access;
+        identity.refresh = rotation.refresh;
+      }
       return rotation;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 &&
@@ -161,6 +192,78 @@ class MemberApi {
       }
     } finally {
       await tokens.clearTokens();
+    }
+  }
+}
+
+class _SessionIdentity {
+  _SessionIdentity(this.access, this.refresh);
+  String access;
+  String? refresh;
+}
+
+/// Requests keep the captured session's Authorization header even if storage
+/// changes after validation. A normal refresh updates the same identity object.
+class MemberApiSession {
+  MemberApiSession._(this._api, this._identity, this._isActive);
+  final MemberApi _api;
+  final _SessionIdentity _identity;
+  final bool Function() _isActive;
+
+  Future<String> _accessForRequest() async {
+    while (true) {
+      if (!_isActive()) throw MemberApi._sessionChanged;
+      final access = _identity.access;
+      final refresh = _identity.refresh;
+      final currentAccess = await _api.tokens.getAccessToken();
+      final currentRefresh = await _api.tokens.getRefreshToken();
+      if (!_isActive()) throw MemberApi._sessionChanged;
+      if (access != _identity.access || refresh != _identity.refresh) continue;
+      if (currentAccess == access && currentRefresh == refresh) return access;
+      // A concurrent, verified refresh may be between saving tokens and
+      // advancing the identity. Wait for that rotation, never a different login.
+      final pending = _api._refreshing;
+      if (pending != null) {
+        await pending;
+        continue;
+      }
+      throw MemberApi._sessionChanged;
+    }
+  }
+
+  Future<void> ensureActive() async {
+    await _accessForRequest();
+  }
+
+  Future<dynamic> request(String method, String path, {Object? data}) async {
+    if (_api.dio.options.baseUrl.isEmpty) {
+      throw const MemberApiException('CONFIGURATION', '서버 주소가 설정되지 않았어요.');
+    }
+    final access = await _accessForRequest();
+    try {
+      final result = await _api._send(method, path, data, access);
+      await ensureActive();
+      return result;
+    } on DioException catch (e) {
+      await ensureActive();
+      if (e.response?.statusCode == 401 &&
+          e.response?.data is Map &&
+          e.response?.data['code'] == 'UNAUTHORIZED') {
+        final verified = await _accessForRequest();
+        final next = verified == access
+            ? await _api.refreshAccessToken(access)
+            : verified;
+        await ensureActive();
+        try {
+          final result = await _api._send(method, path, data, next);
+          await ensureActive();
+          return result;
+        } on DioException catch (retry) {
+          await ensureActive();
+          throw MemberApiException.fromDio(retry);
+        }
+      }
+      throw MemberApiException.fromDio(e);
     }
   }
 }
