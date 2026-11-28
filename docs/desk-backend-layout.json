@@ -1,7 +1,7 @@
 {
-  "layoutVersion": "desk-01-preserve-existing",
+  "layoutVersion": "desk-02-center",
   "modelAsset": "assets/models/toggleme_room.glb",
-  "modelSha256": "e2933d41fae645ff05d7568b8cfc0565cb2ba26b5282e3dde9a7f7cb63718973",
+  "modelSha256": "bbde234e9e20e0de86009a9d818e0422e146a764dd132449382e86a204ac335d",
   "sourceGlbSha256": "aa4b90f613143e2b0fe02d93c8d68652b75f0ec92b05352dc8dea0d360ca0ce0",
   "furnitureType": {
     "id": 3,
@@ -25,7 +25,7 @@
     "furnitureTypeCode": "desk",
     "objectNodeName": "desk",
     "position": {
-      "x": -1.4908016920089722,
+      "x": -1.0408016920089722,
       "y": 0.385222852230072,
       "z": -0.021670036017894745
     },

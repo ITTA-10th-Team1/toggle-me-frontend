@@ -96,6 +96,7 @@ void main() {
                   [
                     {'id': 11, 'code': 'mirror', 'name': '거울'},
                     {'id': 22, 'code': 'fridge', 'name': '냉장고'},
+                    {'id': 33, 'code': 'desk', 'name': '책상'},
                   ],
                 );
               case '/api/v1/furniture-types/11/variants':
@@ -112,10 +113,12 @@ void main() {
                     {'id': 202},
                   ],
                 );
+              case '/api/v1/furniture-types/33/variants':
+                return (200, [{'id': 303}]);
               case '/api/v1/members/onboarding':
                 creates++;
                 expect(o.data, {
-                  'furnitureVariantIds': [101, 202],
+                  'furnitureVariantIds': [101, 202, 303],
                   'visibility': 'SOCIAL_OFF',
                 });
                 return save.future;
