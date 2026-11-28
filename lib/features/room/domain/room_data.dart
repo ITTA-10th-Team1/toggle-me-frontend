@@ -3,9 +3,16 @@ import 'room_visibility.dart';
 class RoomFurniture {
   RoomFurniture.fromJson(Map<String, dynamic> json)
     : typeId = (json['furnitureTypeId'] as num).toInt(),
-      code = json['furnitureTypeCode'] as String,
+      code = _sceneCode(json),
       hidden = json['hidden'] as bool,
-      scene = Map<String, dynamic>.from(json);
+      scene = {...json, 'furnitureTypeCode': _sceneCode(json)};
+  // The server currently uses bookshelf for the desk model. Keep the alias
+  // scoped to that model so a future real bookshelf stays distinct.
+  static String _sceneCode(Map<String, dynamic> json) =>
+      json['furnitureTypeCode'] == 'bookshelf' && json['objectNodeName'] == 'desk'
+          ? 'desk'
+          : json['furnitureTypeCode'] as String;
+
   final int typeId;
   final String code;
   final bool hidden;

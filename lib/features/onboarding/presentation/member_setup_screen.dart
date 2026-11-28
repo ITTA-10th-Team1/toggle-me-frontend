@@ -62,7 +62,7 @@ class _MemberSetupScreenState extends State<MemberSetupScreen> {
         session: _autoSession,
       );
       final supported = all
-          .where((e) => const {'mirror', 'fridge', 'desk'}.contains(e['code']))
+          .where((e) => const {'mirror', 'fridge', 'desk', 'bookshelf'}.contains(e['code']))
           .toList();
       final choices = <int, int>{};
       for (final type in supported) {
