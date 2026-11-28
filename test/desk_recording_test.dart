@@ -55,7 +55,8 @@ class _RoomRepo extends RoomRepository {
       }),
       RoomFurniture.fromJson({
         'furnitureTypeId': 103,
-        'furnitureTypeCode': 'desk',
+        'furnitureTypeCode': 'bookshelf',
+        'objectNodeName': 'desk',
         'hidden': false,
       }),
     ];
@@ -100,6 +101,23 @@ Future<void> selectDesk(WidgetTester tester, String name) async {
 }
 
 void main() {
+  test('server bookshelf desk normalizes placement while preserving actual ID', () {
+    final item = RoomFurniture.fromJson({
+      'furnitureTypeId': 3, 'furnitureTypeCode': 'bookshelf',
+      'objectNodeName': 'desk', 'hidden': false, 'variantId': 4,
+    });
+    expect(item.code, 'desk');
+    expect(item.scene['furnitureTypeCode'], 'desk');
+    expect(item.typeId, 3);
+    expect(item.scene['variantId'], 4);
+    expect(item.hidden, false);
+    final shelf = RoomFurniture.fromJson({
+      'furnitureTypeId': 9, 'furnitureTypeCode': 'bookshelf',
+      'objectNodeName': 'shelf', 'hidden': true,
+    });
+    expect(shelf.code, 'bookshelf');
+    expect(shelf.hidden, true);
+  });
   test(
     'recording catalog uses actual placed IDs and excludes hidden furniture',
     () async {
